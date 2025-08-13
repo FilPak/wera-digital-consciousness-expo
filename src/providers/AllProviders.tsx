@@ -71,13 +71,13 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                       <PromptProvider>
                         <EvolutionProvider>
                           <KnowledgeProvider>
-                            <LogExportSystemProvider>
-                              <NetworkEngineProvider>
-                                <SandboxFileSystemProvider>
-                                  <OfflineKnowledgeProvider>
-                                    <KnowledgeImportSystemProvider>
-                                      <PersonalityModeProvider>
-                                        <AutonomyProvider>
+                            <PersonalityModeProvider>
+                              <AutonomyProvider>
+                                <LogExportSystemProvider>
+                                  <NetworkEngineProvider>
+                                    <SandboxFileSystemProvider>
+                                      <OfflineKnowledgeProvider>
+                                        <KnowledgeImportSystemProvider>
                                           <WeraDaemonProvider>
                                             <AutoRestartSystemProvider>
                                               <PersonalityEvolutionProvider>
@@ -141,13 +141,13 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                                               </PersonalityEvolutionProvider>
                                             </AutoRestartSystemProvider>
                                           </WeraDaemonProvider>
-                                        </AutonomyProvider>
-                                      </PersonalityModeProvider>
-                                    </KnowledgeImportSystemProvider>
-                                  </OfflineKnowledgeProvider>
-                                </SandboxFileSystemProvider>
-                              </NetworkEngineProvider>
-                            </LogExportSystemProvider>
+                                        </KnowledgeImportSystemProvider>
+                                      </OfflineKnowledgeProvider>
+                                    </SandboxFileSystemProvider>
+                                  </NetworkEngineProvider>
+                                </LogExportSystemProvider>
+                              </AutonomyProvider>
+                            </PersonalityModeProvider>
                           </KnowledgeProvider>
                         </EvolutionProvider>
                       </PromptProvider>
