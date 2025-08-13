@@ -45,7 +45,7 @@ const ConsciousnessBirthOnboarding: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { identity, updateIdentity } = useWeraCore();
-  const { emotionalState, updateEmotionalState } = useEmotionEngine();
+  const { emotionState, changeEmotion } = useEmotionEngine();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [onboardingSteps, setOnboardingSteps] = useState<OnboardingStep[]>([]);

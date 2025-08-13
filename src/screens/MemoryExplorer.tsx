@@ -40,7 +40,7 @@ const MemoryExplorer: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { memories, addMemory, deleteMemory } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   
   const [localMemories, setLocalMemories] = useState<Memory[]>([]);
   const [filteredMemories, setFilteredMemories] = useState<Memory[]>([]);

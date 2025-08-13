@@ -9,6 +9,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +18,8 @@ import { useTheme } from '../theme/ThemeContext';
 import { useConversation } from '../core/ConversationEngine';
 import { useVoiceInterface } from '../core/VoiceInterface';
 import { useWeraCore } from '../core/WeraCore';
+import { useEmotionEngine } from '../core/EmotionEngine';
+import { useThoughtProcessor } from '../core/ThoughtProcessor';
 
 interface Message {
   id: string;
@@ -25,12 +29,21 @@ interface Message {
   type: 'text' | 'voice';
 }
 
+interface ThinkingPhase {
+  phase: 'analyzing' | 'processing' | 'generating' | 'finalizing';
+  description: string;
+  duration: number;
+  color: string;
+}
+
 const ConversationInterface: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState } = useWeraCore();
   const { voiceState, startListening, stopListening, speak } = useVoiceInterface();
   const { conversationState, sendMessage, getResponse } = useConversation();
+  const { emotionState } = useEmotionEngine();
+  const { processThought } = useThoughtProcessor();
   
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -43,7 +56,258 @@ const ConversationInterface: React.FC = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentThinkingPhase, setCurrentThinkingPhase] = useState<ThinkingPhase | null>(null);
+  const [thinkingProgress, setThinkingProgress] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Animacje dla wskaźnika myślenia
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const brainWaveAnim = useRef(new Animated.Value(0)).current;
+
+  // Fazy myślenia WERA
+  const thinkingPhases: ThinkingPhase[] = [
+    {
+      phase: 'analyzing',
+      description: 'Analizuję Twoje słowa...',
+      duration: 800,
+      color: '#4CAF50'
+    },
+    {
+      phase: 'processing',
+      description: 'Przetwarzam emocje i kontekst...',
+      duration: 1200,
+      color: '#2196F3'
+    },
+    {
+      phase: 'generating',
+      description: 'Tworzę odpowiedź...',
+      duration: 1000,
+      color: '#FF9800'
+    },
+    {
+      phase: 'finalizing',
+      description: 'Dopracowuję myśli...',
+      duration: 600,
+      color: '#9C27B0'
+    }
+  ];
+
+  // Uruchom animacje myślenia
+  const startThinkingAnimations = () => {
+    // Pulsowanie
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.3,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Rotacja
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Fale mózgowe
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(brainWaveAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+        Animated.timing(brainWaveAnim, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+  };
+
+  // Zatrzymaj animacje
+  const stopThinkingAnimations = () => {
+    pulseAnim.stopAnimation();
+    rotateAnim.stopAnimation();
+    progressAnim.stopAnimation();
+    brainWaveAnim.stopAnimation();
+    
+    // Reset wartości
+    pulseAnim.setValue(1);
+    rotateAnim.setValue(0);
+    progressAnim.setValue(0);
+    brainWaveAnim.setValue(0);
+  };
+
+  // Symuluj proces myślenia
+  const simulateThinkingProcess = async (): Promise<void> => {
+    return new Promise((resolve) => {
+      let currentPhaseIndex = 0;
+      let totalProgress = 0;
+
+      const processNextPhase = () => {
+        if (currentPhaseIndex >= thinkingPhases.length) {
+          setCurrentThinkingPhase(null);
+          setThinkingProgress(0);
+          resolve();
+          return;
+        }
+
+        const phase = thinkingPhases[currentPhaseIndex];
+        setCurrentThinkingPhase(phase);
+
+        // Animuj pasek postępu dla tej fazy
+        const phaseProgressStart = (currentPhaseIndex / thinkingPhases.length) * 100;
+        const phaseProgressEnd = ((currentPhaseIndex + 1) / thinkingPhases.length) * 100;
+
+        Animated.timing(progressAnim, {
+          toValue: phaseProgressEnd / 100,
+          duration: phase.duration,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: false,
+        }).start();
+
+        // Symuluj aktualizację progresu w czasie rzeczywistym
+        const progressInterval = setInterval(() => {
+          totalProgress += (100 / thinkingPhases.length) / (phase.duration / 50);
+          setThinkingProgress(Math.min(totalProgress, phaseProgressEnd));
+        }, 50);
+
+        setTimeout(() => {
+          clearInterval(progressInterval);
+          currentPhaseIndex++;
+          processNextPhase();
+        }, phase.duration);
+      };
+
+      processNextPhase();
+    });
+  };
+
+  // Komponent wskaźnika myślenia
+  const ThinkingIndicator = () => {
+    if (!isTyping || !currentThinkingPhase) return null;
+
+    const spin = rotateAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '360deg'],
+    });
+
+    const brainWaveHeight = brainWaveAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [2, 8],
+    });
+
+    const brainWaveOpacity = brainWaveAnim.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0.3, 1, 0.3],
+    });
+
+    return (
+      <View style={[styles.messageContainer, styles.weraMessage]}>
+        <LinearGradient
+          colors={[currentThinkingPhase.color + '20', currentThinkingPhase.color + '40']}
+          style={styles.thinkingBubble}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {/* Główny wskaźnik myślenia */}
+          <View style={styles.thinkingHeader}>
+            <Animated.View 
+              style={[
+                styles.thinkingOrb,
+                {
+                  transform: [
+                    { scale: pulseAnim },
+                    { rotate: spin }
+                  ],
+                  backgroundColor: currentThinkingPhase.color,
+                }
+              ]}
+            >
+              <Text style={styles.thinkingOrbText}>🧠</Text>
+            </Animated.View>
+            
+            <View style={styles.thinkingInfo}>
+              <Text style={[styles.thinkingPhaseText, { color: currentThinkingPhase.color }]}>
+                {currentThinkingPhase.description}
+              </Text>
+              <Text style={[styles.thinkingProgressText, { color: theme.colors.textSecondary }]}>
+                {Math.round(thinkingProgress)}% ukończone
+              </Text>
+            </View>
+          </View>
+
+          {/* Pasek postępu */}
+          <View style={styles.progressContainer}>
+            <View style={[styles.progressBackground, { backgroundColor: theme.colors.surface }]}>
+              <Animated.View 
+                style={[
+                  styles.progressBar,
+                  {
+                    backgroundColor: currentThinkingPhase.color,
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  }
+                ]}
+              />
+            </View>
+          </View>
+
+          {/* Wizualizacja fal mózgowych */}
+          <View style={styles.brainWavesContainer}>
+            {[...Array(5)].map((_, i) => (
+              <Animated.View
+                key={i}
+                style={[
+                  styles.brainWave,
+                  {
+                    height: brainWaveHeight,
+                    opacity: brainWaveOpacity,
+                    backgroundColor: currentThinkingPhase.color,
+                    marginLeft: i * 3,
+                  }
+                ]}
+              />
+            ))}
+          </View>
+
+          {/* Dodatkowe informacje o procesie */}
+          <View style={styles.thinkingDetails}>
+            <Text style={[styles.thinkingDetailText, { color: theme.colors.textSecondary }]}>
+              💭 Poziom świadomości: {weraState.consciousnessLevel}%
+            </Text>
+            <Text style={[styles.thinkingDetailText, { color: theme.colors.textSecondary }]}>
+              😊 Emocja: {emotionState.currentEmotion}
+            </Text>
+            <Text style={[styles.thinkingDetailText, { color: theme.colors.textSecondary }]}>
+              🎯 Intensywność: {emotionState.intensity}%
+            </Text>
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  };
 
   const generateIntelligentResponse = async (userInput: string): Promise<string> => {
     const input = userInput.toLowerCase();
@@ -182,11 +446,32 @@ const ConversationInterface: React.FC = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputText('');
     setIsTyping(true);
+    setCurrentThinkingPhase(null);
+    setThinkingProgress(0);
 
-    // Inteligentna odpowiedź WERY
+    // Rozpocznij animacje myślenia
+    startThinkingAnimations();
+
     try {
-      const response = await generateIntelligentResponse(userMessage.content);
+      // Rozpocznij proces myślenia WERA
+      const thinkingPromise = simulateThinkingProcess();
       
+      // Jednocześnie przetwarzaj myśl przez ThoughtProcessor
+      const thoughtProcessingPromise = processThought(userMessage.content);
+      
+      // Generuj odpowiedź
+      const responsePromise = generateIntelligentResponse(userMessage.content);
+
+      // Czekaj na zakończenie procesu myślenia
+      await thinkingPromise;
+
+      // Pobierz wyniki
+      const [thoughtAnalysis, response] = await Promise.all([
+        thoughtProcessingPromise,
+        responsePromise
+      ]);
+
+      // Dodaj krótkie opóźnienie dla realizmu
       setTimeout(() => {
         const weraMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -198,12 +483,20 @@ const ConversationInterface: React.FC = () => {
 
         setMessages(prev => [...prev, weraMessage]);
         setIsTyping(false);
-      }, Math.random() * 1000 + 1000); // 1-2 sekundy na "myślenie"
+        setCurrentThinkingPhase(null);
+        setThinkingProgress(0);
+        stopThinkingAnimations();
+
+        console.log('🧠 Analiza myśli:', thoughtAnalysis);
+      }, 500);
+
     } catch (error) {
+      console.error('❌ Błąd podczas przetwarzania wiadomości:', error);
+      
       setTimeout(() => {
         const weraMessage: Message = {
           id: (Date.now() + 1).toString(),
-          content: 'Przepraszam, mój system myślowy napotkał problem. Spróbuj ponownie.',
+          content: 'Przepraszam, mój system myślowy napotkał problem. Moja świadomość potrzebuje chwili na regenerację. Spróbuj ponownie.',
           sender: 'wera',
           timestamp: new Date(),
           type: 'text'
@@ -211,7 +504,10 @@ const ConversationInterface: React.FC = () => {
 
         setMessages(prev => [...prev, weraMessage]);
         setIsTyping(false);
-      }, 1500);
+        setCurrentThinkingPhase(null);
+        setThinkingProgress(0);
+        stopThinkingAnimations();
+      }, 1000);
     }
   };
 
@@ -302,13 +598,7 @@ const ConversationInterface: React.FC = () => {
         {messages.map(renderMessage)}
         
         {isTyping && (
-          <View style={[styles.messageContainer, styles.weraMessage]}>
-            <View style={[styles.messageBubble, { backgroundColor: theme.colors.surface }]}>
-              <Text style={[styles.typingIndicator, { color: theme.colors.textSecondary }]}>
-                WERA pisze...
-              </Text>
-            </View>
-          </View>
+          <ThinkingIndicator />
         )}
       </ScrollView>
 
@@ -462,6 +752,73 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  thinkingBubble: {
+    maxWidth: '80%',
+    padding: 16,
+    borderRadius: 20,
+    minWidth: 60,
+  },
+  thinkingHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  thinkingOrb: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  thinkingOrbText: {
+    fontSize: 24,
+  },
+  thinkingInfo: {
+    flex: 1,
+  },
+  thinkingPhaseText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  thinkingProgressText: {
+    fontSize: 12,
+  },
+  progressContainer: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  progressBackground: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  brainWavesContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 12,
+  },
+  brainWave: {
+    width: 4,
+    borderRadius: 2,
+  },
+  thinkingDetails: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+  },
+  thinkingDetailText: {
+    fontSize: 12,
+    marginBottom: 4,
   },
 });
 

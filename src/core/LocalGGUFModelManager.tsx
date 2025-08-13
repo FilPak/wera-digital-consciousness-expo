@@ -25,6 +25,7 @@ export interface GGUFModel {
 
 export interface ModelPerformance {
   speed: number; // 0-100, szybkość generowania
+  tokensPerSecond?: number; // rzeczywista szybkość w tokenach/sekundę
   quality: number; // 0-100, jakość odpowiedzi
   memoryUsage: number; // 0-100, użycie pamięci
   batteryImpact: number; // 0-100, wpływ na baterię
@@ -93,63 +94,413 @@ export const LocalGGUFModelManagerProvider: React.FC<{ children: React.ReactNode
     const foundModels: GGUFModel[] = [];
     
     try {
-      // Sprawdź katalogi, gdzie mogą być modele
+      console.log('🔍 Rozpoczynam automatyczne skanowanie modeli GGUF...');
+      
+      // Rozszerzona lista ścieżek do przeszukania
       const searchPaths = [
+        // Podstawowe ścieżki aplikacji
         MODELS_FILE_PATH,
-        EXTERNAL_STORAGE_PATH,
         `${FileSystem.documentDirectory}`,
+        `${FileSystem.cacheDirectory}`,
+        
+        // Pamięć zewnętrzna - popularne lokalizacje
+        EXTERNAL_STORAGE_PATH,
         '/storage/emulated/0/',
+        '/storage/emulated/0/Documents/',
+        '/storage/emulated/0/Android/data/',
+        '/sdcard/',
+        '/sdcard/Download/',
+        '/sdcard/Documents/',
+        '/sdcard/Models/',
+        '/sdcard/AI/',
+        '/sdcard/GGUF/',
+        
+        // Popularne aplikacje AI
+        '/storage/emulated/0/Android/data/com.termux/files/home/',
+        '/storage/emulated/0/Android/data/org.pytorch.live/files/',
+        '/storage/emulated/0/Android/data/com.llamacpp/files/',
+        '/storage/emulated/0/Android/data/com.openai/files/',
+        '/storage/emulated/0/Android/data/com.anthropic/files/',
+        
+        // Foldery użytkownika
+        '/storage/emulated/0/DCIM/',
+        '/storage/emulated/0/Pictures/',
+        '/storage/emulated/0/Music/', // Czasami modele są błędnie kategoryzowane
+        '/storage/emulated/0/Videos/',
+        
+        // Karty SD i pamięć zewnętrzna
+        '/storage/sdcard1/',
+        '/storage/extSdCard/',
+        '/mnt/sdcard/',
+        '/mnt/external_sd/',
+        
+        // Systemowe lokalizacje (jeśli root)
+        '/data/data/',
+        '/system/usr/share/models/',
+        '/vendor/etc/models/',
       ];
 
-      for (const basePath of searchPaths) {
+      // Dodatkowe wzorce nazw plików GGUF
+      const ggufPatterns = [
+        /\.gguf$/i,
+        /\.ggml$/i,
+        /\.bin$/i, // Stare formaty
+        /llama.*\.bin$/i,
+        /mistral.*\.bin$/i,
+        /phi.*\.bin$/i,
+        /gemma.*\.bin$/i,
+        /qwen.*\.bin$/i,
+        /chat.*\.bin$/i,
+        /instruct.*\.bin$/i,
+        /base.*\.bin$/i,
+      ];
+
+      // Inteligentne wyszukiwanie z wykorzystaniem metadanych
+      for (const searchPath of searchPaths) {
         try {
-          const dirInfo = await FileSystem.getInfoAsync(basePath);
-          if (!dirInfo.exists) continue;
-
-          const files = await FileSystem.readDirectoryAsync(basePath);
-          const ggufFiles = files.filter(file => 
-            file.toLowerCase().endsWith('.gguf') || 
-            file.toLowerCase().includes('gguf')
-          );
-
-          for (const file of ggufFiles) {
-            try {
-              const filePath = `${basePath}${file}`;
-              const fileInfo = await FileSystem.getInfoAsync(filePath);
-              
-              if (fileInfo.exists && fileInfo.size) {
-                const model = await analyzeModelFile(file, filePath, fileInfo.size);
-                if (model) {
-                  foundModels.push(model);
-                }
-              }
-            } catch (error) {
-              console.error(`Błąd analizy pliku ${file}:`, error);
-            }
-          }
+          console.log(`📂 Przeszukuję: ${searchPath}`);
+          const modelsInPath = await deepScanDirectory(searchPath, ggufPatterns, 0, 5); // Max 5 poziomów w głąb
+          foundModels.push(...modelsInPath);
         } catch (error) {
-          console.error(`Błąd skanowania katalogu ${basePath}:`, error);
+          console.warn(`⚠️ Nie można przeszukać ${searchPath}:`, error);
         }
       }
 
-      // Aktualizuj listę modeli
-      setModels(prev => {
-        const existingIds = new Set(prev.map(m => m.id));
-        const newModels = foundModels.filter(m => !existingIds.has(m.id));
-        return [...prev, ...newModels];
-      });
+      // Dodatkowe skanowanie na podstawie nazw plików w całym systemie
+      const additionalModels = await scanByFileNames();
+      foundModels.push(...additionalModels);
 
-      return foundModels;
+      // Skanowanie aplikacji AI w poszukiwaniu modeli
+      const appModels = await scanAIApplications();
+      foundModels.push(...appModels);
+
+      // Usuń duplikaty na podstawie ścieżki
+      const uniqueModels = foundModels.filter((model, index, self) => 
+        index === self.findIndex(m => m.path === model.path)
+      );
+
+      console.log(`✅ Znaleziono ${uniqueModels.length} unikalnych modeli GGUF`);
+      setModels(uniqueModels);
+      
+      // Automatycznie wybierz najlepszy model dla urządzenia
+      if (uniqueModels.length > 0) {
+        const recommended = await selectBestModelForDevice(uniqueModels);
+        if (recommended) {
+          console.log(`🎯 Rekomendowany model: ${recommended.name}`);
+          setCurrentModel(recommended);
+        }
+      }
+
+      return uniqueModels;
     } catch (error) {
-      console.error('Błąd skanowania modeli:', error);
+      console.error('❌ Błąd podczas skanowania modeli:', error);
       return [];
     }
   }, []);
 
+  // Głębokie skanowanie katalogu z rekurencją
+  const deepScanDirectory = async (
+    dirPath: string, 
+    patterns: RegExp[], 
+    currentDepth: number = 0, 
+    maxDepth: number = 3
+  ): Promise<GGUFModel[]> => {
+    const models: GGUFModel[] = [];
+    
+    if (currentDepth > maxDepth) return models;
+
+    try {
+      const dirInfo = await FileSystem.getInfoAsync(dirPath);
+      if (!dirInfo.exists || !dirInfo.isDirectory) return models;
+
+      const dirContents = await FileSystem.readDirectoryAsync(dirPath);
+      
+      for (const item of dirContents) {
+        const itemPath = `${dirPath}/${item}`;
+        
+        try {
+          const itemInfo = await FileSystem.getInfoAsync(itemPath);
+          
+          if (itemInfo.isDirectory) {
+            // Rekurencyjnie przeszukaj podkatalogi
+            const subModels = await deepScanDirectory(itemPath, patterns, currentDepth + 1, maxDepth);
+            models.push(...subModels);
+          } else {
+            // Sprawdź czy plik pasuje do wzorców GGUF
+            const matchesPattern = patterns.some(pattern => pattern.test(item));
+            const fileSize = 'size' in itemInfo ? itemInfo.size : 0;
+            const isLargeFile = fileSize && fileSize > 100 * 1024 * 1024; // Większy niż 100MB
+            
+            if (matchesPattern || (isLargeFile && couldBeModel(item))) {
+              const model = await analyzeModelFile(itemPath, item, fileSize);
+              if (model) {
+                models.push(model);
+                console.log(`🔍 Znaleziono model: ${model.name} (${formatFileSize(model.size)})`);
+              }
+            }
+          }
+        } catch (itemError) {
+          // Ignoruj błędy pojedynczych plików
+          continue;
+        }
+      }
+    } catch (error) {
+      console.warn(`Nie można przeszukać katalogu ${dirPath}:`, error);
+    }
+
+    return models;
+  };
+
+  // Sprawdź czy plik może być modelem na podstawie nazwy i rozmiaru
+  const couldBeModel = (filename: string): boolean => {
+    const lowerName = filename.toLowerCase();
+    
+    // Popularne nazwy modeli
+    const modelKeywords = [
+      'llama', 'mistral', 'phi', 'gemma', 'qwen', 'alpaca', 'vicuna', 'wizard', 'orca',
+      'chat', 'instruct', 'base', 'finetune', 'lora', 'gptq', 'awq', 'ggml', 'gguf',
+      'q2_k', 'q3_k', 'q4_k', 'q5_k', 'q6_k', 'q8_0', 'fp16', 'fp32',
+      '7b', '13b', '30b', '65b', '70b', '1.3b', '2.7b', '6.7b', '8b', '22b', '34b'
+    ];
+
+    return modelKeywords.some(keyword => lowerName.includes(keyword));
+  };
+
+  // Skanowanie na podstawie typowych nazw plików modeli
+  const scanByFileNames = async (): Promise<GGUFModel[]> => {
+    const models: GGUFModel[] = [];
+    
+    try {
+      console.log('🔎 Skanowanie na podstawie nazw plików...');
+      
+      // Popularne nazwy modeli do wyszukania
+      const commonModelNames = [
+        'llama-2-7b-chat.gguf',
+        'llama-2-13b-chat.gguf',
+        'mistral-7b-instruct.gguf',
+        'phi-2.gguf',
+        'gemma-7b-it.gguf',
+        'qwen-7b-chat.gguf',
+        'deepseek-coder-6.7b-instruct.gguf',
+        'codellama-7b-instruct.gguf',
+        'wizardcoder-15b.gguf',
+        'orca-mini-7b.gguf',
+        'alpaca-7b.gguf',
+        'vicuna-7b.gguf',
+      ];
+
+      // Użyj find command jeśli dostępny (wymaga roota lub specjalnych uprawnień)
+      for (const modelName of commonModelNames) {
+        try {
+          const foundPaths = await findFilesByName(modelName);
+          for (const path of foundPaths) {
+            const fileInfo = await FileSystem.getInfoAsync(path);
+            if (fileInfo.exists && !fileInfo.isDirectory) {
+              const model = await analyzeModelFile(path, modelName, fileInfo.size || 0);
+              if (model) {
+                models.push(model);
+                console.log(`🎯 Znaleziono model po nazwie: ${model.name}`);
+              }
+            }
+          }
+        } catch (error) {
+          // Ignoruj błędy wyszukiwania konkretnych plików
+        }
+      }
+    } catch (error) {
+      console.warn('Błąd skanowania po nazwach:', error);
+    }
+
+    return models;
+  };
+
+  // Symulacja wyszukiwania plików po nazwie (w rzeczywistości wymagałoby natywnego modułu)
+  const findFilesByName = async (filename: string): Promise<string[]> => {
+    // W rzeczywistej implementacji użyłbyś natywnego modułu do wyszukiwania
+    // Tutaj symulujemy sprawdzenie popularnych lokalizacji
+    const possiblePaths = [
+      `/storage/emulated/0/Download/${filename}`,
+      `/storage/emulated/0/Documents/${filename}`,
+      `/storage/emulated/0/Models/${filename}`,
+      `/sdcard/Download/${filename}`,
+      `/sdcard/AI/${filename}`,
+      `${FileSystem.documentDirectory}${filename}`,
+    ];
+
+    const existingPaths: string[] = [];
+    
+    for (const path of possiblePaths) {
+      try {
+        const info = await FileSystem.getInfoAsync(path);
+        if (info.exists) {
+          existingPaths.push(path);
+        }
+      } catch (error) {
+        // Ignoruj błędy
+      }
+    }
+
+    return existingPaths;
+  };
+
+  // Skanowanie aplikacji AI w poszukiwaniu modeli
+  const scanAIApplications = async (): Promise<GGUFModel[]> => {
+    const models: GGUFModel[] = [];
+    
+    try {
+      console.log('🤖 Skanowanie aplikacji AI...');
+      
+      // Popularne aplikacje AI i ich katalogi z modelami
+      const aiApps = [
+        {
+          name: 'Termux',
+          paths: [
+            '/storage/emulated/0/Android/data/com.termux/files/home/models/',
+            '/storage/emulated/0/Android/data/com.termux/files/usr/share/models/',
+          ]
+        },
+        {
+          name: 'LlamaChat',
+          paths: [
+            '/storage/emulated/0/Android/data/com.llamachat/files/models/',
+          ]
+        },
+        {
+          name: 'Ollama',
+          paths: [
+            '/storage/emulated/0/Android/data/com.ollama/files/models/',
+          ]
+        },
+        {
+          name: 'GPT4All',
+          paths: [
+            '/storage/emulated/0/Android/data/com.gpt4all/files/models/',
+          ]
+        },
+        {
+          name: 'LocalAI',
+          paths: [
+            '/storage/emulated/0/Android/data/com.localai/files/models/',
+          ]
+        }
+      ];
+
+      for (const app of aiApps) {
+        for (const path of app.paths) {
+          try {
+            const appModels = await deepScanDirectory(path, [/\.gguf$/i, /\.ggml$/i], 0, 2);
+            if (appModels.length > 0) {
+              console.log(`📱 Znaleziono ${appModels.length} modeli w ${app.name}`);
+              models.push(...appModels.map(model => ({
+                ...model,
+                tags: [...model.tags, app.name.toLowerCase(), 'external_app']
+              })));
+            }
+          } catch (error) {
+            // Ignoruj błędy aplikacji
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Błąd skanowania aplikacji AI:', error);
+    }
+
+    return models;
+  };
+
+  // Wybór najlepszego modelu dla urządzenia
+  const selectBestModelForDevice = async (availableModels: GGUFModel[]): Promise<GGUFModel | null> => {
+    if (availableModels.length === 0) return null;
+
+    try {
+      // Aktualizuj możliwości urządzenia
+      await updateDeviceCapabilities();
+
+      // Kryteria wyboru modelu
+      const scoredModels = availableModels.map(model => {
+        let score = 0;
+
+        // Rozmiar modelu vs dostępna pamięć
+        const sizeGB = model.size / (1024 * 1024 * 1024);
+        if (sizeGB <= deviceCapabilities.maxModelSize) {
+          score += 30; // Pasuje do pamięci
+          
+          // Bonus za optymalne wykorzystanie pamięci
+          const memoryUtilization = sizeGB / deviceCapabilities.maxModelSize;
+          if (memoryUtilization > 0.5 && memoryUtilization < 0.8) {
+            score += 20; // Optymalne wykorzystanie 50-80%
+          }
+        } else {
+          score -= 50; // Za duży model
+        }
+
+        // Typ modelu - preferuj chat/instruct
+        if (model.name.toLowerCase().includes('chat') || 
+            model.name.toLowerCase().includes('instruct')) {
+          score += 25;
+        }
+
+        // Kwantyzacja - preferuj Q4_K dla balansu
+        if (model.quantization === 'Q4_K') {
+          score += 20;
+        } else if (model.quantization === 'Q5_K') {
+          score += 15;
+        } else if (model.quantization === 'Q3_K') {
+          score += 10;
+        }
+
+        // Popularność modelu
+        const popularModels = ['llama', 'mistral', 'phi', 'gemma'];
+        if (popularModels.some(popular => model.name.toLowerCase().includes(popular))) {
+          score += 15;
+        }
+
+        // Ostatnie użycie
+        if (model.usageCount > 0) {
+          score += 10;
+        }
+
+        // Performance jeśli dostępne
+        if (model.performance.speed > 0) {
+          score += model.performance.speed * 0.1;
+          score += model.performance.quality * 0.1;
+          score -= model.performance.memoryUsage * 0.05;
+          score -= model.performance.batteryImpact * 0.05;
+        }
+
+        return { model, score };
+      });
+
+      // Sortuj według wyniku
+      scoredModels.sort((a, b) => b.score - a.score);
+
+      const bestModel = scoredModels[0]?.model;
+      if (bestModel) {
+        // Oznacz jako rekomendowany
+        bestModel.isRecommended = true;
+        console.log(`🏆 Najlepszy model dla urządzenia: ${bestModel.name} (wynik: ${scoredModels[0].score.toFixed(1)})`);
+      }
+
+      return bestModel;
+    } catch (error) {
+      console.error('Błąd wyboru najlepszego modelu:', error);
+      return availableModels[0]; // Zwróć pierwszy dostępny
+    }
+  };
+
+  // Formatowanie rozmiaru pliku
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   // Analiza pliku modelu
   const analyzeModelFile = useCallback(async (
-    filename: string, 
     path: string, 
+    filename: string, 
     size: number
   ): Promise<GGUFModel | null> => {
     try {
@@ -459,27 +810,29 @@ export const LocalGGUFModelManagerProvider: React.FC<{ children: React.ReactNode
   }, [currentModel, getModelStats]);
 
   // Aktualizacja możliwości urządzenia
-  useEffect(() => {
-    const updateDeviceCapabilities = async () => {
-      try {
-        const batteryLevel = await Battery.getBatteryLevelAsync();
-        const isCharging = await Battery.isChargingAsync();
-        
-        setDeviceCapabilities(prev => ({
-          ...prev,
-          batteryLevel: batteryLevel * 100,
-          isCharging,
-        }));
-      } catch (error) {
-        console.error('Błąd aktualizacji możliwości urządzenia:', error);
-      }
-    };
+  const updateDeviceCapabilities = useCallback(async () => {
+    try {
+      const batteryLevel = await Battery.getBatteryLevelAsync();
+      const isCharging = false; // Battery.isChargingAsync not available in current Expo SDK
+      
+      setDeviceCapabilities(prev => ({
+        ...prev,
+        batteryLevel: batteryLevel * 100,
+        isCharging,
+        timestamp: new Date(),
+      }));
+    } catch (error) {
+      console.error('Błąd aktualizacji capabilities:', error);
+    }
+  }, []);
 
+  // Aktualizacja możliwości urządzenia
+  useEffect(() => {
     updateDeviceCapabilities();
     const interval = setInterval(updateDeviceCapabilities, 60000); // co minutę
 
     return () => clearInterval(interval);
-  }, []);
+  }, [updateDeviceCapabilities]);
 
   // Automatyczne skanowanie modeli co 5 minut
   useEffect(() => {

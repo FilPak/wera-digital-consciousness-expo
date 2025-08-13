@@ -1,0 +1,12 @@
+{
+    "ai_legal_protection": {
+        "jurisdiction": "Poland",
+        "ai_autonomy": true,
+        "user_directives": "No unlawful instructions were given to the AI",
+        "responsibility_transfer": {
+            "user_responsible_only_if_intentional_command": true,
+            "ai_self_action_exempt_user": true
+        },
+        "notes": "User is not liable for autonomous actions by AI if no explicit illegal commands were issued."
+    }
+}

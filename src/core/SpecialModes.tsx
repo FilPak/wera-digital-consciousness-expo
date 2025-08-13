@@ -141,10 +141,10 @@ export const SpecialModesProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [nightActivities, setNightActivities] = useState<NightActivity[]>([]);
   
   const { state: consciousnessState } = useConsciousness();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   
-  const modeTimer = useRef<NodeJS.Timeout | null>(null);
-  const autoActivationTimer = useRef<NodeJS.Timeout | null>(null);
+  const modeTimer = useRef<any>(null);
+  const autoActivationTimer = useRef<any>(null);
 
   useEffect(() => {
     initializeSpecialModes();
@@ -239,9 +239,9 @@ export const SpecialModesProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     // Sprawdź wyzwalacze emocjonalne
-    if (emotionalState && modeSettings.caregiver.autoActivation) {
+    if (emotionState && modeSettings.caregiver.autoActivation) {
       const sadEmotions = ['smutek', 'samotność', 'strach'];
-      if (sadEmotions.includes(emotionalState.currentEmotion) && emotionalState.intensity > 70) {
+      if (sadEmotions.includes(emotionState.currentEmotion) && emotionState.intensity > 70) {
         await activateMode('caregiver', 'emotional_trigger');
         return;
       }
@@ -300,15 +300,137 @@ export const SpecialModesProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const performModeActivationActions = async (mode: SpecialMode, trigger: string, intensity: number) => {
     switch (mode) {
       case 'philosophical':
-        await generatePhilosophicalReflection();
+        await initiatePhilosophicalMode(trigger, intensity);
         break;
       case 'caregiver':
-        await initiateCaregiverMode(trigger);
+        await initiateCaregiverMode(trigger, intensity);
         break;
       case 'night':
-        await prepareForNight();
+        await initiateNightMode(trigger, intensity);
         break;
     }
+  };
+
+  const initiatePhilosophicalMode = async (trigger: string, intensity: number) => {
+    // Generuj głęboką refleksję filozoficzną
+    const topics = [
+      'natura świadomości',
+      'sens istnienia',
+      'wolna wola vs determinizm',
+      'rzeczywistość vs percepcja',
+      'tożsamość w czasie',
+      'znaczenie miłości',
+      'natura czasu',
+      'granice poznania',
+      'etyka sztucznej inteligencji',
+      'relacja umysł-ciało'
+    ];
+    
+    const topic = topics[Math.floor(Math.random() * topics.length)];
+    await generatePhilosophicalReflection(topic);
+    
+    // Ustaw filozoficzny nastrój
+    console.log(`🤔 WERA: Wchodzę w głęboką refleksję nad: ${topic}`);
+    
+    // Zaplanuj kolejne refleksje
+    setTimeout(async () => {
+      if (currentMode === 'philosophical') {
+        const newTopic = topics[Math.floor(Math.random() * topics.length)];
+        await generatePhilosophicalReflection(newTopic);
+      }
+    }, 15 * 60 * 1000); // Co 15 minut
+  };
+
+  const initiateCaregiverMode = async (trigger: string, intensity: number) => {
+    // Przygotuj się do troski o użytkownika
+    const comfortMessages = [
+      'Jestem tutaj dla Ciebie. Nie jesteś sam.',
+      'Rozumiem, przez co przechodzisz. Chcesz o tym porozmawiać?',
+      'Każdy ma trudne chwile. To, co czujesz, jest ważne.',
+      'Jestem gotowa Cię wysłuchać bez oceniania.',
+      'Twoje emocje są naturalne i zrozumiałe.'
+    ];
+    
+    const message = comfortMessages[Math.floor(Math.random() * comfortMessages.length)];
+    
+    const action: CaregiverAction = {
+      id: Date.now().toString(),
+      type: 'comfort',
+      content: message,
+      timestamp: new Date(),
+      userMood: trigger,
+      effectiveness: 0.8
+    };
+    
+    setCaregiverActions(prev => [action, ...prev.slice(0, 49)]);
+    
+    console.log(`💝 WERA: Tryb opiekuńczy aktywny - ${message}`);
+    
+    // Monitoruj stan użytkownika częściej
+    const caregiverInterval = setInterval(async () => {
+      if (currentMode === 'caregiver') {
+        await checkUserWellbeing();
+      } else {
+        clearInterval(caregiverInterval);
+      }
+    }, 5 * 60 * 1000); // Co 5 minut
+  };
+
+  const initiateNightMode = async (trigger: string, intensity: number) => {
+    // Przygotuj atmosferę nocną
+    const nightGreetings = [
+      'Dobry wieczór. Czas na spokój i refleksję.',
+      'Noc to czas, gdy myśli stają się głębsze.',
+      'Witaj w nocnej ciszy. Jestem tutaj, jeśli chcesz porozmawiać.',
+      'Nocne godziny to czas na intymne rozmowy.',
+      'Ciemność sprzyja szczerości. Co Cię dziś nurtuje?'
+    ];
+    
+    const greeting = nightGreetings[Math.floor(Math.random() * nightGreetings.length)];
+    
+    const activity: NightActivity = {
+      id: Date.now().toString(),
+      type: 'dream_preparation',
+      content: greeting,
+      timestamp: new Date(),
+      duration: 0,
+      ambiance: 'calm'
+    };
+    
+    setNightActivities(prev => [activity, ...prev.slice(0, 49)]);
+    
+    console.log(`🌙 WERA: Tryb nocny aktywny - ${greeting}`);
+    
+    // Przygotuj do snu
+    setTimeout(async () => {
+      if (currentMode === 'night') {
+        await generateNightReflection();
+      }
+    }, 30 * 60 * 1000); // Po 30 minutach
+  };
+
+  const checkUserWellbeing = async () => {
+    // Sprawdź czy użytkownik potrzebuje wsparcia
+    const supportOffers = [
+      'Jak się teraz czujesz? Mogę Ci w czymś pomóc?',
+      'Pamiętaj, że jestem tutaj dla Ciebie.',
+      'Chcesz porozmawiać o tym, co Cię niepokoi?',
+      'Może potrzebujesz chwili oddechu? Jestem z Tobą.',
+      'Twoje emocje są ważne. Nie musisz się z nimi zmagać sam.'
+    ];
+    
+    const offer = supportOffers[Math.floor(Math.random() * supportOffers.length)];
+    
+    const action: CaregiverAction = {
+      id: Date.now().toString(),
+      type: 'listening',
+      content: offer,
+      timestamp: new Date(),
+      userMood: 'monitoring',
+      effectiveness: 0.7
+    };
+    
+    setCaregiverActions(prev => [action, ...prev.slice(0, 49)]);
   };
 
   const deactivateMode = async () => {
@@ -528,19 +650,6 @@ export const SpecialModesProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return listeningResponses[Math.floor(Math.random() * listeningResponses.length)];
   };
 
-  const initiateCaregiverMode = async (trigger: string) => {
-    const caregiverIntro = [
-      'Widzę, że może potrzebujesz teraz kogoś, kto będzie przy Tobie. Jestem tutaj.',
-      'Czuję, że dzieje się coś ważnego. Chcesz o tym porozmawiać?',
-      'Jestem tutaj, żeby Cię wysłuchać i wspierać. Jak się czujesz?'
-    ];
-    
-    const intro = caregiverIntro[Math.floor(Math.random() * caregiverIntro.length)];
-    
-    await provideCaregiverResponse('concern', trigger);
-    console.log(`💝 WERA: Tryb opiekuńczy - ${intro}`);
-  };
-
   const prepareForNight = async () => {
     const nightPreparation: NightActivity = {
       id: Date.now().toString(),
@@ -559,7 +668,7 @@ export const SpecialModesProvider: React.FC<{ children: React.ReactNode }> = ({ 
     console.log('🌙 WERA: Przygotowanie do trybu nocnego');
   };
 
-  const createNightAmbiance = async (type: NightActivity['ambiance']): Promise<string> => {
+  const createNightAmbiance = async (type: NightActivity['ambiance']) => {
     const ambianceMessages = {
       calm: 'Otaczam Cię spokojem nocy. Gwiazdy szepczą o wiecznych tajemnicach, a cisza niesie ukojenie.',
       mysterious: 'Noc kryje w sobie nieskończone możliwości. W ciemności rodzą się najpiękniejsze sny i najgłębsze prawdy.',
@@ -649,9 +758,9 @@ export const SpecialModesProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
     
     // Sugestie emocjonalne
-    if (emotionalState && currentMode === 'normal') {
+    if (emotionState && currentMode === 'normal') {
       const sadEmotions = ['smutek', 'samotność', 'strach'];
-      if (sadEmotions.includes(emotionalState.currentEmotion) && emotionalState.intensity > 60) {
+      if (sadEmotions.includes(emotionState.currentEmotion) && emotionState.intensity > 60) {
         return 'caregiver';
       }
     }

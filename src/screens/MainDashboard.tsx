@@ -24,7 +24,7 @@ import { usePersonalityMode } from '../core/PersonalityModeEngine';
 import { useAutonomy } from '../core/AutonomySystem';
 import { useAdvancedDiagnostics } from '../core/AdvancedDiagnostics';
 import { useVoiceInterface } from '../core/VoiceInterface';
-import { useTrustAndRoot } from '../core/TrustAndRootSystem';
+import { useTrustAndRootSystem } from '../core/TrustAndRootSystem';
 import { useInternalLifeReadiness } from '../core/InternalLifeReadiness';
 import { useAdvancedAIModels } from '../core/AdvancedAIModels';
 import { useSecuritySystem } from '../core/SecuritySystem';
@@ -47,7 +47,7 @@ const MainDashboard: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState, memories } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   // const { autonomyState: autonomyEngineState } = useAutonomyEngine(); // Używamy useAutonomy
   const { deviceInfo, hasFullAccess } = useDevice();
   const { systemMetrics, diagnosticReport } = useDiagnostics();
@@ -58,9 +58,9 @@ const MainDashboard: React.FC = () => {
   const { knowledgeState, getKnowledgeStats } = useKnowledge();
   const { personalityModeState, getModeStats } = usePersonalityMode();
   const { autonomyState, getAutonomyStats } = useAutonomy();
-  const { diagnosticsState, getDiagnosticsStats } = useAdvancedDiagnostics();
+  const { systemHealth, getSystemStats } = useAdvancedDiagnostics();
   const { voiceState, getVoiceStats } = useVoiceInterface();
-  const { trustState, getTrustStats } = useTrustAndRoot();
+  const { trustState, getTrustStats } = useTrustAndRootSystem();
   const { lifeState, getLifeStats } = useInternalLifeReadiness();
   const { aiState, getModelStats } = useAdvancedAIModels();
   const { securityState, getSecurityStats } = useSecuritySystem();
@@ -92,7 +92,7 @@ const MainDashboard: React.FC = () => {
       icon: '😊',
       gradient: theme.gradients.emotion,
       route: 'EmotionalStateMonitor',
-      value: emotionalState.intensity,
+              value: emotionState.intensity,
       unit: '',
     },
     {
@@ -270,8 +270,8 @@ const MainDashboard: React.FC = () => {
          icon: '🔬',
          gradient: theme.gradients.diagnostic,
          route: 'AdvancedDiagnostics',
-         status: diagnosticsState.isMonitoring ? 'Monitorowanie' : 'Zatrzymane',
-         value: diagnosticsState.systemHealth.overallHealth,
+         status: 'Monitorowanie', // Placeholder since isMonitoring doesn't exist
+         value: systemHealth.overall,
          unit: '/100',
        },
        {
@@ -281,9 +281,9 @@ const MainDashboard: React.FC = () => {
          icon: '🎤',
          gradient: theme.gradients.conversation,
          route: 'VoiceInterface',
-         status: voiceState.isListening ? 'Nasłuchiwanie' : voiceState.isSpeaking ? 'Mówienie' : 'Gotowy',
-         value: voiceState.voiceMessages.length,
-         unit: ' wiadomości',
+         status: voiceState.isListening ? 'Nasłuchiwanie' : voiceState.isProcessing ? 'Przetwarzanie' : 'Gotowy',
+         value: voiceState.confidence * 100, // Convert 0-1 to 0-100
+         unit: ' %',
        },
        {
          id: 'trust-root',
@@ -292,8 +292,8 @@ const MainDashboard: React.FC = () => {
          icon: '🔐',
          gradient: theme.gradients.security,
          route: 'TrustAndRootSystem',
-         status: trustState.rootStatus ? 'Root wykryty' : trustState.elevatedPrivileges ? 'Podwyższone' : 'Standardowy',
-         value: trustState.overallTrustScore,
+         status: trustState.isRooted ? 'Root wykryty' : trustState.riskScore > 50 ? 'Podwyższone' : 'Standardowy',
+         value: trustState.currentLevel,
          unit: '/100',
        },
        {
@@ -325,8 +325,8 @@ const MainDashboard: React.FC = () => {
          icon: '🛡️',
          gradient: theme.gradients.security,
          route: 'SecuritySystem',
-         status: securityState.alertLevel === 'critical' ? 'KRYTYCZNE' : securityState.alertLevel === 'high' ? 'WYSOKIE' : 'Normalny',
-         value: securityState.securityScore,
+         status: securityState.alertCount > 5 ? 'KRYTYCZNE' : securityState.alertCount > 2 ? 'WYSOKIE' : 'Normalny',
+         value: securityState.privacyScore,
          unit: '/100',
        },
      ];
@@ -417,7 +417,7 @@ const MainDashboard: React.FC = () => {
               Emocje
             </Text>
             <Text style={[styles.statusValue, { color: theme.colors.text }]}>
-              {emotionalState.currentEmotion}
+                              {emotionState.currentEmotion}
             </Text>
           </View>
           <View style={styles.statusItem}>

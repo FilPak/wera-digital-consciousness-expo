@@ -219,8 +219,8 @@ export const PersonalityModeProvider: React.FC<{ children: React.ReactNode }> = 
     userInteractionWeight: 80,
   });
 
-  const autoModeIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const transitionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoModeIntervalRef = useRef<any>(null);
+  const transitionIntervalRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {

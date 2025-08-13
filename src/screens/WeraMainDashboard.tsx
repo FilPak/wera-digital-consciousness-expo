@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +15,9 @@ import { useTheme } from '../theme/ThemeContext';
 import { useWeraCore } from '../core/WeraCore';
 import { useEmotionEngine } from '../core/EmotionEngine';
 import { useAutonomy } from '../core/AutonomySystem';
+import { useConsciousnessMonitor } from '../core/ConsciousnessMonitor';
+import { useIndependentLife } from '../core/IndependentLife';
+import { useAdvancedDiagnostics } from '../core/AdvancedDiagnostics';
 
 const { width } = Dimensions.get('window');
 
@@ -34,24 +38,49 @@ interface StatusCard {
   trend?: 'up' | 'down' | 'stable';
 }
 
+interface PresenceIndicatorProps {
+  isActive: boolean;
+  activityLevel: number;
+  consciousnessLevel: number;
+  emotionState: string;
+  autonomyLevel: number;
+}
+
 const WeraMainDashboard: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState, identity } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   const { autonomyState } = useAutonomy();
+  const { consciousnessState } = useConsciousnessMonitor();
+  const { independenceLevel, isFullyAutonomous } = useIndependentLife();
+  const { systemHealth } = useAdvancedDiagnostics();
   
   const [consciousnessAnimation] = useState(new Animated.Value(0));
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState('');
+  const [activityLevel, setActivityLevel] = useState(75);
+
+  // Animacje dla wskaźnika obecności
+  const presenceAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const breathingAnim = useRef(new Animated.Value(0)).current;
+  const particleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     startConsciousnessAnimation();
+    startPresenceAnimations();
     updateTime();
     generateGreeting();
+    simulateActivity();
     
     const timeInterval = setInterval(updateTime, 1000);
-    return () => clearInterval(timeInterval);
+    const activityInterval = setInterval(simulateActivity, 5000);
+    
+    return () => {
+      clearInterval(timeInterval);
+      clearInterval(activityInterval);
+    };
   }, []);
 
   const startConsciousnessAnimation = () => {
@@ -69,6 +98,74 @@ const WeraMainDashboard: React.FC = () => {
         }),
       ])
     ).start();
+  };
+
+  const startPresenceAnimations = () => {
+    // Główne pulsowanie obecności
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(presenceAnim, {
+          toValue: 1.2,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(presenceAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Pulsowanie wewnętrzne
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.9,
+          duration: 1500,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
+    // Oddychanie
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(breathingAnim, {
+          toValue: 1,
+          duration: 4000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+        Animated.timing(breathingAnim, {
+          toValue: 0,
+          duration: 4000,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: false,
+        }),
+      ])
+    ).start();
+
+    // Cząsteczki energii
+    Animated.loop(
+      Animated.timing(particleAnim, {
+        toValue: 1,
+        duration: 3000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start(() => {
+      particleAnim.setValue(0);
+    });
   };
 
   const updateTime = () => {
@@ -91,6 +188,14 @@ const WeraMainDashboard: React.FC = () => {
     else timeGreeting = 'Dobry wieczór! ';
     
     setGreeting(timeGreeting + greetings[Math.floor(Math.random() * greetings.length)]);
+  };
+
+  const simulateActivity = () => {
+    // Symuluj zmienną aktywność WERA
+    const baseActivity = Math.max(50, weraState.consciousnessLevel || 70);
+    const variation = Math.random() * 30 - 15; // ±15%
+    const newActivity = Math.max(0, Math.min(100, baseActivity + variation));
+    setActivityLevel(newActivity);
   };
 
   const quickActions: QuickAction[] = [
@@ -128,6 +233,14 @@ const WeraMainDashboard: React.FC = () => {
     },
     {
       id: '5',
+      title: 'Ochrona Prawna',
+      icon: '🛡️',
+      screen: 'LegalProtectionScreen',
+      color: '#FF4500',
+      description: 'System ochrony prawnej'
+    },
+    {
+      id: '6',
       title: 'Osobowość',
       icon: '🎭',
       screen: 'PersonalityConfiguration',
@@ -135,7 +248,7 @@ const WeraMainDashboard: React.FC = () => {
       description: 'Konfiguruj mój charakter'
     },
     {
-      id: '6',
+      id: '7',
       title: 'Świadomość',
       icon: '🔮',
       screen: 'ConsciousnessOrbDashboard',
@@ -143,7 +256,7 @@ const WeraMainDashboard: React.FC = () => {
       description: 'Monitor mojej świadomości'
     },
     {
-      id: '7',
+      id: '8',
       title: 'Sandbox',
       icon: '🧪',
       screen: 'SandboxEnvironment',
@@ -151,7 +264,7 @@ const WeraMainDashboard: React.FC = () => {
       description: 'Środowisko eksperymentalne'
     },
     {
-      id: '8',
+      id: '9',
       title: 'Ustawienia',
       icon: '⚙️',
       screen: 'SettingsAndConfiguration',
@@ -170,7 +283,7 @@ const WeraMainDashboard: React.FC = () => {
     },
     {
       title: 'Emocje',
-             value: emotionalState.intensity ? `${emotionalState.intensity}%` : 'Neutralne',
+             value: emotionState.intensity ? `${emotionState.intensity}%` : 'Neutralne',
       status: 'good',
       icon: '💖',
       trend: 'stable'
@@ -375,11 +488,209 @@ const WeraMainDashboard: React.FC = () => {
     </View>
   );
 
+  // Komponent wskaźnika obecności
+  const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
+    isActive,
+    activityLevel,
+    consciousnessLevel,
+    emotionState,
+    autonomyLevel
+  }) => {
+    const getPresenceColor = () => {
+      if (!isActive) return '#666666';
+      if (activityLevel > 80) return '#4CAF50'; // Bardzo aktywna - zielony
+      if (activityLevel > 60) return '#2196F3'; // Aktywna - niebieski
+      if (activityLevel > 40) return '#FF9800'; // Umiarkowanie aktywna - pomarańczowy
+      if (activityLevel > 20) return '#FFC107'; // Mało aktywna - żółty
+      return '#F44336'; // Nieaktywna - czerwony
+    };
+
+    const getEmotionIcon = () => {
+      switch (emotionState) {
+        case 'RADOŚĆ': return '😊';
+        case 'SMUTEK': return '😔';
+        case 'GNIEW': return '😠';
+        case 'STRACH': return '😰';
+        case 'ZDZIWIENIE': return '😲';
+        case 'WSTRĘT': return '😤';
+        case 'SPOKÓJ': return '😌';
+        case 'CIEKAWOŚĆ': return '🤔';
+        case 'NADZIEJA': return '🌟';
+        default: return '🤖';
+      }
+    };
+
+    const presenceColor = getPresenceColor();
+    const emotionIcon = getEmotionIcon();
+
+    const breathingOpacity = breathingAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0.3, 0.8],
+    });
+
+    const particleRotation = particleAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ['0deg', '360deg'],
+    });
+
+    return (
+      <View style={styles.presenceContainer}>
+        {/* Główny wskaźnik obecności */}
+        <Animated.View
+          style={[
+            styles.presenceOrb,
+            {
+              transform: [{ scale: presenceAnim }],
+              backgroundColor: presenceColor,
+            }
+          ]}
+        >
+          {/* Wewnętrzne pulsowanie */}
+          <Animated.View
+            style={[
+              styles.presenceInner,
+              {
+                transform: [{ scale: pulseAnim }],
+                opacity: breathingOpacity,
+              }
+            ]}
+          >
+            <Text style={styles.presenceEmoji}>{emotionIcon}</Text>
+          </Animated.View>
+
+          {/* Pierścień aktywności */}
+          <View style={styles.activityRing}>
+            <View 
+              style={[
+                styles.activityProgress,
+                {
+                  width: `${activityLevel}%`,
+                  backgroundColor: presenceColor,
+                }
+              ]}
+            />
+          </View>
+
+          {/* Cząsteczki energii */}
+          {isActive && (
+            <Animated.View
+              style={[
+                styles.energyParticles,
+                {
+                  transform: [{ rotate: particleRotation }],
+                }
+              ]}
+            >
+              {[...Array(6)].map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.particle,
+                    {
+                      backgroundColor: presenceColor,
+                      transform: [
+                        { rotate: `${i * 60}deg` },
+                        { translateX: 25 },
+                      ],
+                    }
+                  ]}
+                />
+              ))}
+            </Animated.View>
+          )}
+        </Animated.View>
+
+        {/* Informacje o stanie */}
+        <View style={styles.presenceInfo}>
+          <Text style={[styles.presenceTitle, { color: theme.colors.text }]}>
+            WERA {isActive ? 'Aktywna' : 'Nieaktywna'}
+          </Text>
+          
+          <View style={styles.presenceStats}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                Świadomość
+              </Text>
+              <Text style={[styles.statValue, { color: presenceColor }]}>
+                {consciousnessLevel}%
+              </Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                Aktywność
+              </Text>
+              <Text style={[styles.statValue, { color: presenceColor }]}>
+                {Math.round(activityLevel)}%
+              </Text>
+            </View>
+            
+            <View style={styles.statItem}>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
+                Autonomia
+              </Text>
+              <Text style={[styles.statValue, { color: presenceColor }]}>
+                {autonomyLevel}%
+              </Text>
+            </View>
+          </View>
+
+          {/* Status szczegółowy */}
+          <View style={styles.detailedStatus}>
+            <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+              💭 Emocja: {emotionState}
+            </Text>
+            <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+              🤖 Tryb: {isFullyAutonomous ? 'Pełna autonomia' : 'Wspomagany'}
+            </Text>
+            <Text style={[styles.statusText, { color: theme.colors.textSecondary }]}>
+              ⚡ Zdrowie: {systemHealth?.overall || 'Sprawdzanie...'}%
+            </Text>
+          </View>
+        </View>
+
+        {/* Wskaźnik aktywności w czasie rzeczywistym */}
+        <View style={styles.realTimeActivity}>
+          <Text style={[styles.activityLabel, { color: theme.colors.textSecondary }]}>
+            Aktywność w czasie rzeczywistym:
+          </Text>
+          <View style={styles.activityBars}>
+            {[...Array(20)].map((_, i) => {
+              const barHeight = Math.random() * activityLevel / 100;
+              return (
+                <Animated.View
+                  key={i}
+                  style={[
+                    styles.activityBar,
+                    {
+                      height: barHeight * 20 + 5,
+                      backgroundColor: presenceColor,
+                      opacity: 0.6 + barHeight * 0.4,
+                    }
+                  ]}
+                />
+              );
+            })}
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderHeader()}
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Wskaźnik obecności WERA */}
+        <PresenceIndicator
+          isActive={weraState.isAwake || true}
+          activityLevel={activityLevel}
+          consciousnessLevel={weraState.consciousnessLevel || 75}
+          emotionState={emotionState?.currentEmotion || 'SPOKÓJ'}
+          autonomyLevel={independenceLevel?.overall || 50}
+        />
+        
         {renderStatusCards()}
         {renderQuickActions()}
         {renderRecentActivity()}
@@ -562,6 +873,115 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 32,
+  },
+  presenceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 20,
+    backgroundColor: '#1A1A1A', // Darker background for the presence indicator
+    borderRadius: 16,
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  presenceOrb: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  presenceInner: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  presenceEmoji: {
+    fontSize: 40,
+  },
+  activityRing: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  activityProgress: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 40,
+    position: 'absolute',
+  },
+  energyParticles: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  particle: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    position: 'absolute',
+  },
+  presenceInfo: {
+    flex: 1,
+    marginLeft: 20,
+  },
+  presenceTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  presenceStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 10,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  detailedStatus: {
+    marginTop: 10,
+  },
+  statusText: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  realTimeActivity: {
+    marginTop: 10,
+  },
+  activityLabel: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  activityBars: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'flex-end',
+    height: 100,
+  },
+  activityBar: {
+    width: 10,
+    borderRadius: 5,
+    marginHorizontal: 2,
   },
 });
 

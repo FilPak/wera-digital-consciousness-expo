@@ -256,7 +256,7 @@ export const AdvancedAIModelsProvider: React.FC<{ children: React.ReactNode }> =
     optimizationCycles: 0,
   });
 
-  const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const processingTimeoutRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {

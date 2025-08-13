@@ -349,7 +349,7 @@ export const MultimodalCommunicationProvider: React.FC<{ children: React.ReactNo
     intentRecognition: true,
   });
 
-  const communicationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const communicationIntervalRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {

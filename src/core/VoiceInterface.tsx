@@ -43,10 +43,18 @@ export interface VoiceEmotion {
 }
 
 interface VoiceInterfaceContextType {
+  voiceState: {
+    isListening: boolean;
+    isProcessing: boolean;
+    lastRecognized: string | null;
+    confidence: number;
+  };
   voiceConfig: VoiceConfig;
   voiceMessages: VoiceMessage[];
   currentlyPlaying: VoiceMessage | null;
   isInitialized: boolean;
+  startListening: () => Promise<void>;
+  stopListening: () => Promise<void>;
   updateVoiceConfig: (config: Partial<VoiceConfig>) => Promise<void>;
   speak: (text: string, options?: {
     emotion?: string;
@@ -519,10 +527,18 @@ export const VoiceInterfaceProvider: React.FC<{ children: React.ReactNode }> = (
   }, [voiceMessages]);
 
   const value: VoiceInterfaceContextType = {
+    voiceState: {
+      isListening: false,
+      isProcessing: false,
+      lastRecognized: null,
+      confidence: 0,
+    },
     voiceConfig,
     voiceMessages,
     currentlyPlaying,
     isInitialized,
+    startListening: () => Promise.resolve(), // Placeholder for future implementation
+    stopListening: () => Promise.resolve(), // Placeholder for future implementation
     updateVoiceConfig,
     speak,
     stopSpeaking,

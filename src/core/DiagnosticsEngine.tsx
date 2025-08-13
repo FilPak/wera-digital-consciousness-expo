@@ -92,7 +92,7 @@ export const DiagnosticsProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const [diagnosticReport, setDiagnosticReport] = useState<DiagnosticReport | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const monitoringIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const monitoringIntervalRef = useRef<any>(null);
   const startTimeRef = useRef<number>(Date.now());
 
   // Pobieranie metryk systemowych (funkcja 93)

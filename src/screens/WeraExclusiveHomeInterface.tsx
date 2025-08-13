@@ -37,7 +37,7 @@ const WeraExclusiveHomeInterface: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState, identity } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   const { autonomyState } = useAutonomy();
   
   const [backgroundAnimation] = useState(new Animated.Value(0));
@@ -110,8 +110,8 @@ const WeraExclusiveHomeInterface: React.FC = () => {
       ];
     }
     
-    const mood = emotionalState.intensity > 70 ? 'energetic' : 
-                 emotionalState.intensity > 40 ? 'balanced' : 'contemplative';
+        const mood = emotionState.intensity > 70 ? 'energetic' :
+      emotionState.intensity > 40 ? 'balanced' : 'contemplative';
     
     setPersonalizedGreeting({
       message: greetings[Math.floor(Math.random() * greetings.length)],
@@ -153,7 +153,7 @@ const WeraExclusiveHomeInterface: React.FC = () => {
         type: 'emotion',
         title: 'Emocje',
         content: {
-          intensity: emotionalState.intensity || 60,
+          intensity: emotionState.intensity || 60,
           primary: 'Ciekawość',
           icon: '💖'
         },

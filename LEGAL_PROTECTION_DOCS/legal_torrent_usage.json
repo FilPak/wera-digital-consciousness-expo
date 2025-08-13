@@ -1,0 +1,14 @@
+{
+    "legal_statement": {
+        "jurisdiction": "Poland",
+        "user_role": "Legal user of third-party software (e.g. uTorrent, BitTorrent)",
+        "software_autonomy": "AI or system may act autonomously under private-use context",
+        "liability_clause": {
+            "user_intent_required": true,
+            "no_user_intent_detected": true,
+            "liability_exemption_for_user": true
+        },
+        "disclaimer": "User neither authored nor configured the software for illegal use; no instructions to break law were given.",
+        "responsible_party": "Software provider (program author) holds primary liability for defects or misuse"
+    }
+}

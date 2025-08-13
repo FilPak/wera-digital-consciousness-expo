@@ -42,7 +42,7 @@ const ComprehensiveSystemDiagnostics: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   const { autonomyState } = useAutonomy();
   const { securityState } = useSecuritySystem();
   
@@ -90,7 +90,7 @@ const ComprehensiveSystemDiagnostics: React.FC = () => {
         status: 'passed',
         score: 85,
         result: 'System emocjonalny funkcjonuje prawidłowo',
-        details: `Aktywna emocja: ${emotionalState.primary}, Intensywność: ${emotionalState.intensity}%`,
+        details: `Aktywna emocja: ${emotionState.currentEmotion}, Intensywność: ${emotionState.intensity}%`,
         duration: 600
       },
       {

@@ -3,36 +3,38 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
-import * as SplashScreen from 'expo-splash-screen';
+import * as SplashScreenExpo from 'expo-splash-screen';
 import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-// Import screens
-import SplashScreenComponent from './src/screens/SplashScreen';
-import MainDashboard from './src/screens/MainDashboard';
+// Screens
+import SplashScreen from './src/screens/SplashScreen';
 import WeraMainDashboard from './src/screens/WeraMainDashboard';
 import ConversationInterface from './src/screens/ConversationInterface';
-import PersonalityConfiguration from './src/screens/PersonalityConfiguration';
-import SettingsAndConfiguration from './src/screens/SettingsAndConfiguration';
-import ConsciousnessMonitor from './src/screens/ConsciousnessMonitor';
-import AdvancedAISystem from './src/screens/AdvancedAISystem';
-import LocalGGUFModelManager from './src/screens/LocalGGUFModelManager';
-import InitialDeviceAccessSetup from './src/screens/InitialDeviceAccessSetup';
 import EmotionalStateMonitor from './src/screens/EmotionalStateMonitor';
 import MemoryExplorer from './src/screens/MemoryExplorer';
 import DreamJournal from './src/screens/DreamJournal';
+import SettingsAndConfiguration from './src/screens/SettingsAndConfiguration';
+import ModelConfigScreen from './src/screens/ModelConfigScreen';
+import ConsciousnessOrbDashboard from './src/screens/ConsciousnessOrbDashboard';
+import PersonalityConfiguration from './src/screens/PersonalityConfiguration';
+import ComprehensiveSystemDiagnostics from './src/screens/ComprehensiveSystemDiagnostics';
+import MainDashboard from './src/screens/MainDashboard';
 import SandboxEnvironment from './src/screens/SandboxEnvironment';
 import SmartInitTestAdaptiveWeraStartup from './src/screens/SmartInitTestAdaptiveWeraStartup';
+import LegalProtectionScreen from './src/screens/LegalProtectionScreen';
+import TerminalInterface from './src/screens/TerminalInterface';
+import LogsPanel from './src/screens/LogsPanel';
 
 // Import providers
-import { AllProviders } from './src/providers/AllProviders';
+import AllProviders from './src/providers/AllProviders';
 import { ThemeProvider } from './src/theme/ThemeContext';
 
 const Stack = createStackNavigator();
 const { width, height } = Dimensions.get('window');
 
 // Prevent auto-hide of splash screen
-SplashScreen.preventAutoHideAsync();
+SplashScreenExpo.preventAutoHideAsync();
 
 // Error Boundary Component
 interface ErrorBoundaryState {
@@ -111,7 +113,7 @@ function WeraApp() {
 
   useEffect(() => {
     if (appIsReady) {
-      SplashScreen.hideAsync();
+      SplashScreenExpo.hideAsync();
     }
   }, [appIsReady]);
 
@@ -191,25 +193,25 @@ function WeraApp() {
               
               <Stack.Screen 
                 name="ConsciousnessMonitor" 
-                component={ConsciousnessMonitor}
+                component={ConsciousnessOrbDashboard}
                 options={{ title: 'Monitor Świadomości' }} 
               />
               
               <Stack.Screen 
                 name="AdvancedAISystem" 
-                component={AdvancedAISystem}
+                component={ComprehensiveSystemDiagnostics}
                 options={{ title: 'Zaawansowany System AI' }} 
               />
               
               <Stack.Screen 
                 name="LocalGGUFModelManager" 
-                component={LocalGGUFModelManager}
+                component={ModelConfigScreen}
                 options={{ title: 'Menedżer Modeli GGUF' }} 
               />
               
               <Stack.Screen 
                 name="InitialDeviceAccessSetup" 
-                component={InitialDeviceAccessSetup}
+                component={LegalProtectionScreen}
                 options={{ title: 'Konfiguracja Urządzenia' }} 
               />
 
@@ -241,6 +243,24 @@ function WeraApp() {
                 name="SmartInitTestAdaptiveWeraStartup" 
                 component={SmartInitTestAdaptiveWeraStartup}
                 options={{ title: 'Test Adaptacyjny WERA' }} 
+              />
+              
+              <Stack.Screen 
+                name="ModelConfigScreen" 
+                component={ModelConfigScreen}
+                options={{ title: 'Konfiguracja Modelu' }} 
+              />
+              
+              <Stack.Screen 
+                name="TerminalInterface" 
+                component={TerminalInterface}
+                options={{ title: 'Interfejs Terminalowy' }} 
+              />
+              
+              <Stack.Screen 
+                name="LogsPanel" 
+                component={LogsPanel}
+                options={{ title: 'Panel Logów' }} 
               />
               
             </Stack.Navigator>

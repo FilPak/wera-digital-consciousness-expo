@@ -104,7 +104,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     priorityFilter: 'all'
   });
 
-  const scheduledNotificationsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const scheduledNotificationsRef = useRef<Map<string, any>>(new Map());
 
   // Konfiguracja Expo Notifications
   useEffect(() => {

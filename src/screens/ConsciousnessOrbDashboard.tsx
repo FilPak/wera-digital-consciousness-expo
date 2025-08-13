@@ -28,7 +28,7 @@ const ConsciousnessOrbDashboard: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState, updateConsciousness } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   
   const [orbAnimation] = useState(new Animated.Value(0));
   const [pulseAnimation] = useState(new Animated.Value(1));
@@ -51,7 +51,7 @@ const ConsciousnessOrbDashboard: React.FC = () => {
     },
     {
       name: 'Emocje',
-      value: emotionalState.intensity || 60,
+      value: emotionState.intensity || 60,
       max: 100,
       color: '#FF6B6B',
       icon: '💖'
@@ -86,7 +86,7 @@ const ConsciousnessOrbDashboard: React.FC = () => {
 
   useEffect(() => {
     updateMetrics();
-  }, [weraState, emotionalState]);
+  }, [weraState, emotionState]);
 
   const startOrbAnimation = () => {
     Animated.loop(
@@ -128,7 +128,7 @@ const ConsciousnessOrbDashboard: React.FC = () => {
         case 'Świadomość':
           return { ...metric, value: weraState.consciousnessLevel || 75 };
         case 'Emocje':
-          return { ...metric, value: emotionalState.intensity || 60 };
+          return { ...metric, value: emotionState.intensity || 60 };
         case 'Żywotność':
           return { ...metric, value: weraState.isAwake ? 90 : 30 };
         default:
@@ -139,10 +139,17 @@ const ConsciousnessOrbDashboard: React.FC = () => {
 
   const getOrbColor = () => {
     if (!weraState.isAwake) return '#708090';
-    if (emotionalState.primary === 'radość') return '#FFD700';
-    if (emotionalState.primary === 'smutek') return '#4169E1';
-    if (emotionalState.primary === 'złość') return '#DC143C';
+    if (emotionState.currentEmotion === 'radość') return '#FFD700';
+    if (emotionState.currentEmotion === 'smutek') return '#4169E1';
+    if (emotionState.currentEmotion === 'złość') return '#DC143C';
     return theme.colors.consciousness;
+  };
+
+  const getEmotionColor = (emotionState: any) => {
+    if (emotionState.currentEmotion === 'radość') return '#FFD700';
+    if (emotionState.currentEmotion === 'smutek') return '#4169E1';
+    if (emotionState.currentEmotion === 'złość') return '#DC143C';
+    return '#32CD32';
   };
 
   const renderOrb = () => {
@@ -259,7 +266,7 @@ const ConsciousnessOrbDashboard: React.FC = () => {
         
         <View style={styles.quickStat}>
           <Text style={[styles.quickStatValue, { color: theme.colors.emotion }]}>
-            {emotionalState.intensity || 60}%
+            {emotionState.intensity || 60}%
           </Text>
           <Text style={[styles.quickStatLabel, { color: theme.colors.textSecondary }]}>
             Emocje

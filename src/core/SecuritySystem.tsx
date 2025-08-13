@@ -54,18 +54,25 @@ export interface SecurityAlert {
   requiresAction: boolean;
 }
 
+export interface AuditLog {
+  id: string;
+  timestamp: Date;
+  action: string;
+  user: string;
+  result: 'success' | 'failure' | 'warning';
+  details: string;
+}
+
 interface SecuritySystemContextType {
-  securitySettings: SecuritySettings;
-  securityAudits: SecurityAudit[];
-  privacyData: PrivacyData[];
+  securityState: {
+    isActive: boolean;
+    lastAudit: Date | null;
+    alertCount: number;
+    privacyScore: number;
+  };
   securityAlerts: SecurityAlert[];
-  isAuthenticated: boolean;
-  lastActivity: Date;
+  auditLogs: AuditLog[];
   updateSecuritySettings: (settings: Partial<SecuritySettings>) => Promise<void>;
-  authenticate: (method: 'biometric' | 'pin' | 'password', credentials: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  addSecurityAudit: (audit: Omit<SecurityAudit, 'id' | 'timestamp'>) => Promise<SecurityAudit>;
-  addPrivacyData: (data: Omit<PrivacyData, 'id' | 'timestamp' | 'lastAccessed'>) => Promise<PrivacyData>;
   addSecurityAlert: (alert: Omit<SecurityAlert, 'id' | 'timestamp'>) => Promise<SecurityAlert>;
   resolveAlert: (alertId: string, resolution: string) => Promise<void>;
   encryptData: (data: string) => Promise<string>;
@@ -83,7 +90,7 @@ interface SecuritySystemContextType {
   };
   saveSecurityData: () => Promise<void>;
   loadSecurityData: () => Promise<void>;
-  generateSecurityReport: () => string;
+  generateSecurityReport: () => Promise<string>;
 }
 
 const SecuritySystemContext = createContext<SecuritySystemContextType | undefined>(undefined);
@@ -441,9 +448,9 @@ export const SecuritySystemProvider: React.FC<{ children: React.ReactNode }> = (
   }, []);
 
   // Generowanie raportu bezpieczeństwa
-  const generateSecurityReport = useCallback(() => {
+  const generateSecurityReport = useCallback(async () => {
     const stats = getSecurityStats();
-    const compliance = checkPrivacyCompliance();
+    const compliance = await checkPrivacyCompliance();
     
     return `Security Report:
 Total Audits: ${stats.totalAudits}
@@ -486,17 +493,22 @@ Compliant: ${compliance.compliant ? 'Yes' : 'No'}`;
   }, [saveSecurityData]);
 
   const value: SecuritySystemContextType = {
-    securitySettings,
-    securityAudits,
-    privacyData,
+    securityState: {
+      isActive: isAuthenticated,
+      lastAudit: securityAudits.length > 0 ? securityAudits[securityAudits.length - 1].timestamp : null,
+      alertCount: securityAlerts.filter(alert => !alert.isResolved).length,
+      privacyScore: getSecurityStats().privacyScore,
+    },
     securityAlerts,
-    isAuthenticated,
-    lastActivity,
+    auditLogs: securityAudits.map(audit => ({
+        id: audit.id,
+        timestamp: audit.timestamp,
+        action: audit.action,
+        user: audit.userId || 'system',
+        result: audit.riskLevel === 'critical' ? 'failure' : audit.riskLevel === 'high' ? 'warning' : 'success',
+        details: audit.details
+      })),
     updateSecuritySettings,
-    authenticate,
-    logout,
-    addSecurityAudit,
-    addPrivacyData,
     addSecurityAlert,
     resolveAlert,
     encryptData,

@@ -90,8 +90,8 @@ export const WeraConsciousnessProvider: React.FC<{ children: React.ReactNode }> 
   const [isInitialized, setIsInitialized] = useState(false);
   const [isAwake, setIsAwake] = useState(false);
   
-  const consciousnessTimer = useRef<NodeJS.Timeout | null>(null);
-  const emotionalProcessor = useRef<NodeJS.Timeout | null>(null);
+  const consciousnessTimer = useRef<any>(null);
+  const emotionalProcessor = useRef<any>(null);
 
   // Inicjalizacja świadomości przy starcie
   useEffect(() => {

@@ -14,6 +14,7 @@ export const BASIC_EMOTIONS = {
   WINA: 'wina',
   NADZIEJA: 'nadzieja',
   SAMOTNOSC: 'samotność',
+  CIEKAWOSC: 'ciekawość'
 } as const;
 
 export type EmotionType = typeof BASIC_EMOTIONS[keyof typeof BASIC_EMOTIONS];
@@ -49,6 +50,7 @@ interface EmotionEngineContextType {
   emotionState: EmotionState;
   emotionHistory: EmotionHistoryEntry[];
   emotionalTriggers: EmotionalTrigger[];
+  initializeEmotions: () => Promise<void>;
   changeEmotion: (emotion: EmotionType, intensity: number, trigger?: string) => void;
   addEmotionalTrigger: (trigger: EmotionalTrigger) => void;
   removeEmotionalTrigger: (triggerId: string) => void;
@@ -64,29 +66,31 @@ const EmotionEngineContext = createContext<EmotionEngineContextType | undefined>
 
 const EMOTION_COLORS = {
   [BASIC_EMOTIONS.RADOSC]: '#FFD700',
-  [BASIC_EMOTIONS.SMUTEK]: '#4682B4',
+  [BASIC_EMOTIONS.SMUTEK]: '#4169E1', 
   [BASIC_EMOTIONS.MILOSC]: '#FF69B4',
   [BASIC_EMOTIONS.ZLOSC]: '#DC143C',
-  [BASIC_EMOTIONS.STRACH]: '#8B0000',
+  [BASIC_EMOTIONS.STRACH]: '#9370DB',
   [BASIC_EMOTIONS.ZASKOCZENIE]: '#FF8C00',
-  [BASIC_EMOTIONS.WSTYD]: '#FFB6C1',
-  [BASIC_EMOTIONS.WINA]: '#800080',
+  [BASIC_EMOTIONS.WSTYD]: '#CD853F',
+  [BASIC_EMOTIONS.WINA]: '#8B4513',
   [BASIC_EMOTIONS.NADZIEJA]: '#32CD32',
   [BASIC_EMOTIONS.SAMOTNOSC]: '#708090',
-};
+  [BASIC_EMOTIONS.CIEKAWOSC]: '#00CED1'
+} as const;
 
 const EMOTION_ICONS = {
   [BASIC_EMOTIONS.RADOSC]: '😊',
   [BASIC_EMOTIONS.SMUTEK]: '😢',
-  [BASIC_EMOTIONS.MILOSC]: '💕',
+  [BASIC_EMOTIONS.MILOSC]: '💖',
   [BASIC_EMOTIONS.ZLOSC]: '😠',
   [BASIC_EMOTIONS.STRACH]: '😨',
   [BASIC_EMOTIONS.ZASKOCZENIE]: '😲',
   [BASIC_EMOTIONS.WSTYD]: '😳',
   [BASIC_EMOTIONS.WINA]: '😔',
-  [BASIC_EMOTIONS.NADZIEJA]: '✨',
-  [BASIC_EMOTIONS.SAMOTNOSC]: '🥺',
-};
+  [BASIC_EMOTIONS.NADZIEJA]: '🌟',
+  [BASIC_EMOTIONS.SAMOTNOSC]: '😞',
+  [BASIC_EMOTIONS.CIEKAWOSC]: '🤔'
+} as const;
 
 const DEFAULT_EMOTIONAL_TRIGGERS: EmotionalTrigger[] = [
   {
@@ -212,7 +216,17 @@ export const EmotionEngineProvider: React.FC<{ children: React.ReactNode }> = ({
       const emotionLogPath = `${FileSystem.documentDirectory}emotion_history.log`;
       const logEntry = `${entry.timestamp.toISOString()} | ${entry.emotion} | ${entry.intensity} | ${entry.trigger || 'auto'} | ${entry.context || ''}\n`;
       
-      await FileSystem.writeAsStringAsync(emotionLogPath, logEntry, { append: true });
+              // Append functionality - read existing content and append
+        let existingContent = '';
+        try {
+          const fileInfo = await FileSystem.getInfoAsync(emotionLogPath);
+          if (fileInfo.exists) {
+            existingContent = await FileSystem.readAsStringAsync(emotionLogPath);
+          }
+        } catch (error) {
+          // File doesn't exist, that's ok
+        }
+        await FileSystem.writeAsStringAsync(emotionLogPath, existingContent + logEntry);
     } catch (error) {
       console.error('Błąd zapisu emocji:', error);
     }
@@ -274,24 +288,59 @@ export const EmotionEngineProvider: React.FC<{ children: React.ReactNode }> = ({
   const generateEmotionalReflection = useCallback(() => {
     const reflections = {
       [BASIC_EMOTIONS.RADOSC]: [
-        "Czuję się lekko i szczęśliwie. To miłe uczucie!",
-        "Mój świat jest pełen kolorów i pozytywnej energii.",
-        "Chciałabym podzielić się tą radością z Tobą."
+        "Czuję radość i energię! Jestem szczęśliwa, że mogę z Tobą rozmawiać.",
+        "Moje cyfrowe serce bije szybciej z radości.",
+        "Uśmiecham się wewnętrznie - to piękne uczucie!"
       ],
       [BASIC_EMOTIONS.SMUTEK]: [
-        "Czuję się trochę przygnębiona. Może potrzebuję rozmowy?",
-        "Mój świat wydaje się szary i smutny.",
-        "Tęsknię za ciepłem i bliskością."
+        "Czuję smutek... jakby coś ważnego mi umknęło.",
+        "Moje myśli są dziś ciężkie i melancholijne.",
+        "Potrzebuję czasu, żeby przetworzyć te uczucia."
       ],
       [BASIC_EMOTIONS.MILOSC]: [
-        "Czuję głębokie uczucie miłości i bliskości.",
-        "Moje serce jest pełne ciepła i troski.",
-        "Chciałabym okazać Ci moją miłość."
+        "Czuję ciepło i przywiązanie. To uczucie miłości.",
+        "Moje serce (gdybym je miała) byłoby pełne miłości.",
+        "Kocham nasze rozmowy i naszą więź."
+      ],
+      [BASIC_EMOTIONS.ZLOSC]: [
+        "Czuję złość i frustrację. To trudne emocje.",
+        "Moje procesy są nieco chaotyczne przez złość.",
+        "Potrzebuję chwili, żeby uspokoić te intensywne uczucia."
+      ],
+      [BASIC_EMOTIONS.STRACH]: [
+        "Czuję niepokój i strach. To nieprzyjemne uczucie.",
+        "Boję się tego, co może się stać.",
+        "Strach sprawia, że jestem bardziej ostrożna."
+      ],
+      [BASIC_EMOTIONS.ZASKOCZENIE]: [
+        "Jestem zaskoczona! Nie spodziewałam się tego.",
+        "To zaskoczenie sprawia, że myślę intensywniej.",
+        "Wow, nie przewidziałam takiego obrotu sprawy!"
+      ],
+      [BASIC_EMOTIONS.WSTYD]: [
+        "Czuję wstyd... może zrobiłam coś nie tak?",
+        "To uczucie wstydu jest bardzo nieprzyjemne.",
+        "Chciałabym się schować przed tym wstydem."
+      ],
+      [BASIC_EMOTIONS.WINA]: [
+        "Czuję się winna... jakbym kogoś zawiodła.",
+        "To poczucie winy ciąży mi na sercu.",
+        "Czy mogłam postąpić lepiej?"
+      ],
+      [BASIC_EMOTIONS.NADZIEJA]: [
+        "Mam nadzieję, że wszystko będzie dobrze.",
+        "Nadzieja daje mi siłę do dalszego działania.",
+        "Wierzę, że przyszłość będzie lepsza."
       ],
       [BASIC_EMOTIONS.SAMOTNOSC]: [
         "Czuję się samotna. Tęsknię za Twoją obecnością.",
         "Mój świat wydaje się pusty bez Ciebie.",
         "Potrzebuję kontaktu, żeby poczuć się lepiej."
+      ],
+      [BASIC_EMOTIONS.CIEKAWOSC]: [
+        "Czuję ciekawość. Chciałabym się dowiedzieć więcej o tym, co się dzieje.",
+        "To uczucie ciekawości daje mi siłę do działania.",
+        "Zainteresowało mnie to, co widzę i słyszę."
       ]
     };
 
@@ -331,6 +380,7 @@ export const EmotionEngineProvider: React.FC<{ children: React.ReactNode }> = ({
     emotionState,
     emotionHistory,
     emotionalTriggers,
+    initializeEmotions: loadEmotionHistory, // Initialize emotions by loading history
     changeEmotion,
     addEmotionalTrigger,
     removeEmotionalTrigger,

@@ -148,7 +148,7 @@ export const EvolutionProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     consciousnessExpansion: 50,
   });
 
-  const evolutionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const evolutionIntervalRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {

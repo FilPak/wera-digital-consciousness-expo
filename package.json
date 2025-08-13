@@ -4,14 +4,20 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test:android": "expo start --android --clear",
-    "build:android": "expo build:android",
+    "build:android": "npm run inspect && expo build:android",
     "eject": "expo eject",
-    "prebuild": "expo prebuild",
-    "publish": "expo publish"
+    "prebuild": "npm run inspect && expo prebuild",
+    "publish": "npm run inspect && expo publish",
+    "inspect": "node tools/wera-inspect.js",
+    "inspect:watch": "node tools/wera-inspect.js --watch",
+    "inspect:fix": "node tools/wera-inspect.js --fix",
+    "inspect:json": "node tools/wera-inspect.js --json",
+    "inspect:test": "node test-background-agent.js",
+    "precommit": "npm run inspect"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -29,14 +35,17 @@
     "expo-crypto": "^14.1.5",
     "expo-dev-client": "~5.2.4",
     "expo-device": "^7.1.4",
+    "expo-document-picker": "^13.1.6",
     "expo-file-system": "^18.1.11",
     "expo-font": "^13.3.2",
+    "expo-haptics": "^14.1.4",
     "expo-linear-gradient": "^14.1.5",
     "expo-location": "^18.1.6",
     "expo-network": "^7.1.5",
     "expo-notifications": "^0.31.4",
     "expo-secure-store": "^14.2.3",
     "expo-sensors": "^14.1.4",
+    "expo-sharing": "^13.1.5",
     "expo-speech": "^13.1.7",
     "expo-splash-screen": "^0.30.10",
     "expo-sqlite": "^15.2.14",
@@ -55,6 +64,8 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~19.0.10",
+    "chokidar": "^3.5.3",
+    "ts-node": "^10.9.1",
     "typescript": "~5.8.3"
   },
   "private": true

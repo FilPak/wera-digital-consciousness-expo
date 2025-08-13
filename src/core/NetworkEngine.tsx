@@ -7,7 +7,7 @@ import { useMemory } from '../contexts/MemoryContext';
 
 export interface NetworkAccess {
   isEnabled: boolean;
-  mode: 'disabled' | 'partial' | 'full' | 'learning_only';
+  mode: 'disabled' | 'partial' | 'full' | 'learning_only' | 'emergency_only' | 'curated_only';
   allowedDomains: string[];
   blockedDomains: string[];
   dataUsageLimit: number; // w MB
@@ -16,6 +16,18 @@ export interface NetworkAccess {
   inspirationEnabled: boolean;
   newsEnabled: boolean;
   lastAccessTime: Date;
+  // Nowe opcje dla trybu częściowego
+  partialSettings: {
+    maxRequestsPerHour: number;
+    allowedContentTypes: ('text' | 'image' | 'video' | 'audio')[];
+    maxContentSizeKB: number;
+    requiresApproval: boolean;
+    autoFilterContent: boolean;
+    emergencyOverride: boolean;
+    trustedSourcesOnly: boolean;
+    timeWindowStart?: number; // godzina 0-23
+    timeWindowEnd?: number; // godzina 0-23
+  };
 }
 
 export interface WebContent {
@@ -118,6 +130,15 @@ export const NetworkEngineProvider: React.FC<{ children: React.ReactNode }> = ({
     inspirationEnabled: true,
     newsEnabled: false,
     lastAccessTime: new Date(),
+    partialSettings: {
+      maxRequestsPerHour: 100,
+      allowedContentTypes: ['text'],
+      maxContentSizeKB: 10240, // 10MB
+      requiresApproval: false,
+      autoFilterContent: true,
+      emergencyOverride: false,
+      trustedSourcesOnly: false,
+    },
   });
 
   const [webContent, setWebContent] = useState<WebContent[]>([]);
@@ -137,13 +158,13 @@ export const NetworkEngineProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Monitorowanie stanu sieci
   useEffect(() => {
-    const checkNetworkStatus = async () => {
-      try {
-        const networkState = await Network.getNetworkStateAsync();
-        setIsOnline(networkState.isConnected || false);
-      } catch (error) {
+  const checkNetworkStatus = async () => {
+    try {
+      const networkState = await Network.getNetworkStateAsync();
+      setIsOnline(networkState.isConnected || false);
+    } catch (error) {
         console.error('Błąd sprawdzania stanu sieci:', error);
-        setIsOnline(false);
+      setIsOnline(false);
       }
     };
 
@@ -188,17 +209,275 @@ export const NetworkEngineProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
 
-      // Sprawdź dozwolone domeny
-      if (networkAccess.mode === 'partial') {
-        return networkAccess.allowedDomains.some(allowed => domain.includes(allowed));
+      // Logika dla różnych trybów
+      switch (networkAccess.mode) {
+        case 'disabled':
+          return false;
+          
+        case 'full':
+          return true;
+          
+        case 'partial':
+          return isPartialAccessAllowed(url, domain);
+          
+        case 'learning_only':
+          return isLearningDomain(domain);
+          
+        case 'emergency_only':
+          return isEmergencyDomain(domain);
+          
+        case 'curated_only':
+          return networkAccess.allowedDomains.some(allowed => domain.includes(allowed));
+          
+        default:
+          return false;
       }
-
-      return networkAccess.mode === 'full';
     } catch (error) {
       console.error('Błąd sprawdzania domeny:', error);
       return false;
     }
   }, [networkAccess]);
+
+  // Sprawdzenie dostępu częściowego
+  const isPartialAccessAllowed = useCallback((url: string, domain: string): boolean => {
+    const { partialSettings } = networkAccess;
+    
+    // Sprawdź okno czasowe
+    if (partialSettings.timeWindowStart !== undefined && partialSettings.timeWindowEnd !== undefined) {
+      const currentHour = new Date().getHours();
+      if (currentHour < partialSettings.timeWindowStart || currentHour > partialSettings.timeWindowEnd) {
+        return false;
+      }
+    }
+    
+    // Sprawdź limit requestów na godzinę
+    const hourlyRequests = getHourlyRequestCount();
+    if (hourlyRequests >= partialSettings.maxRequestsPerHour) {
+      console.log('🚫 Osiągnięto limit requestów na godzinę');
+      return false;
+    }
+    
+    // Sprawdź zaufane źródła
+    if (partialSettings.trustedSourcesOnly) {
+      const trustedDomains = [
+        'wikipedia.org', 'wikimedia.org', 'github.com', 'stackoverflow.com',
+        'arxiv.org', 'scholar.google.com', 'news.google.com'
+      ];
+      return trustedDomains.some(trusted => domain.includes(trusted));
+    }
+    
+    // Sprawdź dozwolone domeny
+    return networkAccess.allowedDomains.some(allowed => domain.includes(allowed));
+  }, [networkAccess]);
+
+  // Sprawdzenie czy domena służy nauce
+  const isLearningDomain = useCallback((domain: string): boolean => {
+    const learningDomains = [
+      'wikipedia.org', 'wikimedia.org', 'arxiv.org', 'scholar.google.com',
+      'coursera.org', 'edx.org', 'khanacademy.org', 'stackoverflow.com',
+      'github.com', 'medium.com', 'towards'
+    ];
+    return learningDomains.some(learning => domain.includes(learning));
+  }, []);
+
+  // Sprawdzenie czy domena jest awaryjna
+  const isEmergencyDomain = useCallback((domain: string): boolean => {
+    const emergencyDomains = [
+      'emergency.gov', 'weather.gov', 'cdc.gov', 'who.int',
+      'gov.pl', 'gov.uk', 'europa.eu'
+    ];
+    return emergencyDomains.some(emergency => domain.includes(emergency));
+  }, []);
+
+  // Liczenie requestów w ostatniej godzinie
+  const getHourlyRequestCount = useCallback((): number => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    return webContent.filter(content => content.timestamp > oneHourAgo).length;
+  }, [webContent]);
+
+  // Inteligentne filtrowanie zawartości
+  const filterContent = useCallback(async (content: string, url: string): Promise<{
+    filtered: string;
+    removed: string[];
+    score: number;
+  }> => {
+    const { partialSettings } = networkAccess;
+    
+    if (!partialSettings.autoFilterContent) {
+      return { filtered: content, removed: [], score: 100 };
+    }
+
+    let filtered = content;
+    const removed: string[] = [];
+    let score = 100;
+
+    // Usuń potencjalnie szkodliwe treści
+    const harmfulPatterns = [
+      /\b(hack|crack|piracy|illegal|virus|malware)\b/gi,
+      /\b(violence|hate|discrimination)\b/gi,
+      /\b(scam|fraud|phishing)\b/gi,
+    ];
+
+    harmfulPatterns.forEach(pattern => {
+      const matches = content.match(pattern);
+      if (matches) {
+        matches.forEach(match => {
+          filtered = filtered.replace(new RegExp(match, 'gi'), '[FILTERED]');
+          removed.push(match);
+          score -= 10;
+        });
+      }
+    });
+
+    // Sprawdź rozmiar zawartości
+    const sizeKB = new Blob([filtered]).size / 1024;
+    if (sizeKB > partialSettings.maxContentSizeKB) {
+      filtered = filtered.substring(0, partialSettings.maxContentSizeKB * 1024);
+      removed.push(`Content truncated (${sizeKB.toFixed(1)}KB > ${partialSettings.maxContentSizeKB}KB)`);
+      score -= 20;
+    }
+
+    // Sprawdź typ zawartości
+    const contentType = detectContentType(filtered);
+    if (!partialSettings.allowedContentTypes.includes(contentType)) {
+      return { filtered: '[CONTENT TYPE NOT ALLOWED]', removed: [`Content type: ${contentType}`], score: 0 };
+    }
+
+    console.log(`🔍 Przefiltrowano zawartość: ${removed.length} elementów usuniętych, wynik: ${score}`);
+    
+    return { filtered, removed, score };
+  }, [networkAccess]);
+
+  // Wykrywanie typu zawartości
+  const detectContentType = (content: string): 'text' | 'image' | 'video' | 'audio' => {
+    if (content.includes('<img') || content.includes('data:image/') || /\.(jpg|jpeg|png|gif|webp)/i.test(content)) {
+      return 'image';
+    }
+    if (content.includes('<video') || /\.(mp4|webm|avi|mov)/i.test(content)) {
+      return 'video';
+    }
+    if (content.includes('<audio') || /\.(mp3|wav|ogg|m4a)/i.test(content)) {
+      return 'audio';
+    }
+    return 'text';
+  };
+
+  // Żądanie zatwierdzenia dla trybu częściowego
+  const requestPartialAccess = useCallback(async (
+    url: string,
+    reason: string
+  ): Promise<boolean> => {
+    const { partialSettings } = networkAccess;
+    
+    if (!partialSettings.requiresApproval) {
+      return true;
+    }
+
+    // W rzeczywistej implementacji byłby to dialog lub notyfikacja
+    console.log(`🔒 Żądanie dostępu do: ${url}`);
+    console.log(`📝 Powód: ${reason}`);
+    
+    // Symulacja zatwierdzenia (w rzeczywistości byłby to interfejs użytkownika)
+    const approved = Math.random() > 0.3; // 70% szans na zatwierdzenie
+    
+    if (approved) {
+      console.log('✅ Dostęp zatwierdzony');
+      
+      // Dodaj domenę do tymczasowo dozwolonych
+      const domain = new URL(url).hostname;
+      setNetworkAccess(prev => ({
+        ...prev,
+        allowedDomains: [...prev.allowedDomains, domain],
+      }));
+    } else {
+      console.log('❌ Dostęp odrzucony');
+    }
+    
+    return approved;
+  }, [networkAccess]);
+
+  // Tryb awaryjny override
+  const emergencyOverride = useCallback(async (url: string, justification: string): Promise<boolean> => {
+    const { partialSettings } = networkAccess;
+    
+    if (!partialSettings.emergencyOverride) {
+      return false;
+    }
+
+    console.log(`🚨 TRYB AWARYJNY: Dostęp do ${url}`);
+    console.log(`📋 Uzasadnienie: ${justification}`);
+    
+    // Loguj awaryjny dostęp
+    await addMemory(
+      `Użyto trybu awaryjnego dla dostępu do: ${url}. Uzasadnienie: ${justification}`,
+      90,
+      ['emergency', 'network', 'override'],
+      'critical'
+    );
+    
+    // Tymczasowo pozwól na dostęp
+    const domain = new URL(url).hostname;
+    setNetworkAccess(prev => ({
+      ...prev,
+      allowedDomains: [...prev.allowedDomains, domain],
+    }));
+    
+    return true;
+  }, [networkAccess]);
+
+  // Analiza bezpieczeństwa URL
+  const analyzeUrlSafety = useCallback(async (url: string): Promise<{
+    safe: boolean;
+    threats: string[];
+    confidence: number;
+  }> => {
+    const threats: string[] = [];
+    let confidence = 100;
+    
+    try {
+      const urlObj = new URL(url);
+      
+      // Sprawdź protokół
+      if (urlObj.protocol !== 'https:' && urlObj.protocol !== 'http:') {
+        threats.push('Nieznany protokół');
+        confidence -= 30;
+      }
+      
+      // Sprawdź podejrzane domeny
+      const suspiciousDomains = [
+        'bit.ly', 'tinyurl.com', 'goo.gl', 't.co', // URL shorteners
+        'tempmail', 'guerrillamail', '10minutemail', // Temporary emails
+        'torrent', 'piratebay', 'kickass', // Piracy
+      ];
+      
+      if (suspiciousDomains.some(suspicious => urlObj.hostname.includes(suspicious))) {
+        threats.push('Podejrzana domena');
+        confidence -= 40;
+      }
+      
+      // Sprawdź długość URL (bardzo długie mogą być podejrzane)
+      if (url.length > 200) {
+        threats.push('Podejrzanie długi URL');
+        confidence -= 20;
+      }
+      
+      // Sprawdź znaki specjalne
+      if (/[^\w\-\.\/\?\=\&\%\:]/g.test(url)) {
+        threats.push('Podejrzane znaki w URL');
+        confidence -= 15;
+      }
+      
+    } catch (error) {
+      threats.push('Nieprawidłowy format URL');
+      confidence = 0;
+    }
+    
+    const safe = confidence > 50 && threats.length === 0;
+    
+    console.log(`🔒 Analiza bezpieczeństwa ${url}: ${safe ? 'BEZPIECZNY' : 'NIEBEZPIECZNY'} (${confidence}%)`);
+    
+    return { safe, threats, confidence };
+  }, []);
 
   // Pobieranie zawartości z URL
   const fetchContent = useCallback(async (
@@ -235,13 +514,13 @@ export const NetworkEngineProvider: React.FC<{ children: React.ReactNode }> = ({
       const content: WebContent = {
         id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
         url,
-        title: response.title,
-        content: response.content,
+        title: response.title || 'Bez tytułu',
+        content: response.content || '',
         category,
         timestamp: new Date(),
         relevanceScore: Math.floor(Math.random() * 40) + 60, // 60-100
         emotionalImpact: Math.floor(Math.random() * 200) - 100, // -100 to +100
-        tags: response.tags,
+        tags: response.tags || [],
         source: new URL(url).hostname,
         isProcessed: false,
         learningPoints: [],
@@ -250,7 +529,7 @@ export const NetworkEngineProvider: React.FC<{ children: React.ReactNode }> = ({
       setWebContent(prev => [...prev, content]);
 
       // Aktualizuj statystyki
-      const dataSize = response.content.length / (1024 * 1024); // MB
+      const dataSize = (response.content || '').length / (1024 * 1024); // MB
       setNetworkAccess(prev => ({
         ...prev,
         currentDataUsage: prev.currentDataUsage + dataSize,
@@ -333,7 +612,7 @@ export const NetworkEngineProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       console.log(`🧠 Przetworzono zawartość: ${content.title}`);
-
+      
     } catch (error) {
       console.error('Błąd przetwarzania zawartości:', error);
     }

@@ -10,7 +10,7 @@ export interface Memory {
   semanticTags: string[];
   accessCount: number;
   lastAccessed: Date;
-  memoryType: 'conversation' | 'reflection' | 'event' | 'learning' | 'dream' | 'thought';
+  memoryType: 'conversation' | 'reflection' | 'event' | 'learning' | 'dream' | 'thought' | 'system' | 'creative' | 'experience' | 'critical' | 'voice' | 'analysis';
   context?: string;
   relatedMemories: string[]; // ID powiązanych wspomnień
   importance: number; // 0-100
@@ -114,7 +114,17 @@ export const MemoryProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     // Zapisz do pliku JSONL
     try {
       const memoryLine = JSON.stringify(newMemory) + '\n';
-      await FileSystem.writeAsStringAsync(MEMORY_FILE_PATH, memoryLine, { append: true });
+      // Append functionality - read existing content and append
+      let existingContent = '';
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(MEMORY_FILE_PATH);
+        if (fileInfo.exists) {
+          existingContent = await FileSystem.readAsStringAsync(MEMORY_FILE_PATH);
+        }
+      } catch (error) {
+        // File doesn't exist, that's ok
+      }
+      await FileSystem.writeAsStringAsync(MEMORY_FILE_PATH, existingContent + memoryLine);
     } catch (error) {
       console.error('Błąd zapisu wspomnienia:', error);
     }

@@ -567,7 +567,7 @@ export const AdvancedUIProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     reducedMotion: false,
   });
 
-  const performanceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const performanceIntervalRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {

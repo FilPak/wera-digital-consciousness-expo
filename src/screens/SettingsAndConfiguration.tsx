@@ -44,7 +44,7 @@ const SettingsAndConfiguration: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { identity, state: weraState, updateConsciousness } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   const { autonomyState, autonomyConfig, updateAutonomyConfig } = useAutonomy();
   const { securityState, updateSecuritySettings } = useSecuritySystem();
   
@@ -131,10 +131,8 @@ const SettingsAndConfiguration: React.FC = () => {
       case 'dataCollection':
       case 'conversationLogging':
         updateSecuritySettings({
-          privacy: {
-            ...securityState.privacySettings,
-            [id]: value
-          }
+          privacyMode: value ? 'normal' : 'enhanced', // Map boolean to privacy mode
+          auditLogging: id === 'conversationLogging' ? value : undefined
         });
         break;
     }
@@ -591,7 +589,7 @@ const SettingsAndConfiguration: React.FC = () => {
                 </View>
                 <View style={styles.statItem}>
                   <Text style={[styles.statValue, { color: theme.colors.primary }]}>
-                    {emotionalState.intensity}
+                    {emotionState.intensity}
                   </Text>
                   <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                     Intensywność Emocji
@@ -621,7 +619,7 @@ const SettingsAndConfiguration: React.FC = () => {
                   Stan Emocjonalny:
                 </Text>
                 <Text style={[styles.diagnosticValue, { color: theme.colors.text }]}>
-                  {emotionalState.primary} ({emotionalState.intensity})
+                  {emotionState.currentEmotion} ({emotionState.intensity})
                 </Text>
               </View>
 

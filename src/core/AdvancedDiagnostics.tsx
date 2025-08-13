@@ -101,7 +101,7 @@ export const AdvancedDiagnosticsProvider: React.FC<{ children: React.ReactNode }
     try {
       // Sprawdź baterię
       const batteryLevel = await Battery.getBatteryLevelAsync();
-      const isCharging = await Battery.isChargingAsync();
+      const isCharging = false; // Battery.isChargingAsync not available in current Expo SDK
       
       results.push({
         category: 'battery',

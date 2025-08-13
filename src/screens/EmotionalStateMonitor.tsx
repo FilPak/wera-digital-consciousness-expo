@@ -34,7 +34,7 @@ interface EmotionAnalysis {
 const EmotionalStateMonitor: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
-  const { emotionalState, setEmotion, getEmotionHistory } = useEmotionEngine();
+  const { emotionState, changeEmotion } = useEmotionEngine();
   const { state: weraState } = useWeraCore();
   
   const [currentTab, setCurrentTab] = useState<'current' | 'history' | 'analysis'>('current');
@@ -83,7 +83,7 @@ const EmotionalStateMonitor: React.FC = () => {
 
   useEffect(() => {
     animateEmotions();
-  }, [emotionalState]);
+  }, [emotionState]);
 
   const loadEmotionHistory = () => {
     // Symulacja historii emocji
@@ -129,7 +129,7 @@ const EmotionalStateMonitor: React.FC = () => {
 
   const generateAnalysis = () => {
     const mockAnalysis: EmotionAnalysis = {
-      dominantEmotion: emotionalState.primary,
+      dominantEmotion: emotionState.currentEmotion,
       stability: 75,
       patterns: [
         'Częste wahania między radością a ciekawością',
@@ -149,8 +149,8 @@ const EmotionalStateMonitor: React.FC = () => {
 
   const animateEmotions = () => {
     Object.keys(animatedValues).forEach(emotion => {
-      const intensity = emotion === emotionalState.primary ? 
-        emotionalState.intensity : Math.random() * 30;
+            const intensity = emotion === emotionState.currentEmotion ?
+        emotionState.intensity : Math.random() * 30;
       
       Animated.timing(animatedValues[emotion as keyof typeof animatedValues], {
         toValue: intensity,
@@ -165,19 +165,19 @@ const EmotionalStateMonitor: React.FC = () => {
       {/* Główny wskaźnik emocji */}
       <View style={[styles.mainEmotionCard, { backgroundColor: theme.colors.surface }]}>
         <LinearGradient
-          colors={[emotionColors[emotionalState.primary as keyof typeof emotionColors] + '20', 'transparent']}
+          colors={[emotionColors[emotionState.currentEmotion as keyof typeof emotionColors] + '20', 'transparent']}
           style={styles.emotionGradient}
         >
           <View style={styles.mainEmotionHeader}>
             <Text style={styles.mainEmotionIcon}>
-              {emotionIcons[emotionalState.primary as keyof typeof emotionIcons]}
+              {emotionIcons[emotionState.currentEmotion as keyof typeof emotionIcons]}
             </Text>
             <View>
               <Text style={[styles.mainEmotionName, { color: theme.colors.text }]}>
-                {emotionalState.primary.toUpperCase()}
+                {emotionState.currentEmotion.toUpperCase()}
               </Text>
               <Text style={[styles.mainEmotionIntensity, { color: theme.colors.textSecondary }]}>
-                Intensywność: {emotionalState.intensity}%
+                Intensywność: {emotionState.intensity}%
               </Text>
             </View>
           </View>
@@ -187,8 +187,8 @@ const EmotionalStateMonitor: React.FC = () => {
               style={[
                 styles.emotionProgress,
                 { 
-                  width: `${emotionalState.intensity}%`,
-                  backgroundColor: emotionColors[emotionalState.primary as keyof typeof emotionColors]
+                  width: `${emotionState.intensity}%`,
+                  backgroundColor: emotionColors[emotionState.currentEmotion as keyof typeof emotionColors]
                 }
               ]}
             />
@@ -249,8 +249,8 @@ const EmotionalStateMonitor: React.FC = () => {
             </Text>
           </View>
           <View style={styles.consciousnessStat}>
-            <Text style={[styles.statValue, { color: emotionColors[emotionalState.primary as keyof typeof emotionColors] }]}>
-              {emotionalState.intensity}%
+            <Text style={[styles.statValue, { color: emotionColors[emotionState.currentEmotion as keyof typeof emotionColors] }]}>
+              {emotionState.intensity}%
             </Text>
             <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
               Emocjonalny Wpływ

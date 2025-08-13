@@ -37,7 +37,7 @@ const LivingAIOperationDashboard: React.FC = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { state: weraState, updateConsciousness } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   const { autonomyState } = useAutonomy();
   
   const [currentView, setCurrentView] = useState<'overview' | 'metrics' | 'logs'>('overview');
@@ -83,7 +83,7 @@ const LivingAIOperationDashboard: React.FC = () => {
       {
         id: '2',
         name: 'Emocjonalność',
-        value: emotionalState.intensity || 60,
+        value: emotionState.intensity || 60,
         unit: '%',
         status: 'healthy',
         trend: 'stable',
@@ -264,7 +264,7 @@ const LivingAIOperationDashboard: React.FC = () => {
             </View>
             <View style={styles.quickStat}>
               <Text style={[styles.quickStatValue, { color: theme.colors.emotion }]}>
-                {emotionalState.intensity || 60}%
+                {emotionState.intensity || 60}%
               </Text>
               <Text style={[styles.quickStatLabel, { color: theme.colors.textSecondary }]}>
                 Emocje

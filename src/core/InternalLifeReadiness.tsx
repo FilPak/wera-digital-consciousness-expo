@@ -158,7 +158,7 @@ export const InternalLifeReadinessProvider: React.FC<{ children: React.ReactNode
 
   const [lifeExperiences, setLifeExperiences] = useState<LifeExperience[]>([]);
 
-  const evolutionIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const evolutionIntervalRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {

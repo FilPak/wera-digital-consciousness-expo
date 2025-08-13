@@ -6,6 +6,8 @@ import * as FileSystem from 'expo-file-system';
 import * as Network from 'expo-network';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import RootShell from './RootShell';
+import { findProfileByCodename } from './DeviceProfiles';
 
 interface DeviceInfo {
   deviceName: string;
@@ -188,6 +190,12 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       // Informacje o ekranie
       const { width, height, scale } = await getScreenInfo();
 
+      // Dodatkowo: ustal kodową nazwę urządzenia (np. raphael) i dopasuj profil
+      let deviceCodename = '';
+      try {
+        deviceCodename = await RootShell.getDeviceCodename();
+      } catch {}
+
       // Stan baterii
       const batteryLevel = await Battery.getBatteryLevelAsync();
       const isCharging = false; // Battery.isChargingAsync nie istnieje w Expo SDK 53
@@ -207,8 +215,14 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const isHighEndDevice = totalMemory > 8000000000; // > 8GB RAM
 
       // Rekomendacje
-      const recommendedModelSize = getRecommendedModelSize(totalMemory);
-      const recommendedUIMode = getRecommendedUIMode(totalMemory, isLowEndDevice);
+      let recommendedModelSize = getRecommendedModelSize(totalMemory);
+      let recommendedUIMode = getRecommendedUIMode(totalMemory, isLowEndDevice);
+
+      const profile = findProfileByCodename(deviceCodename);
+      if (profile) {
+        recommendedModelSize = profile.recommendedModelSize;
+        recommendedUIMode = profile.recommendedUIMode;
+      }
 
       // Sprawdzenie uprawnień
       const systemPermissions = await checkSystemPermissions();
@@ -251,7 +265,7 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isHighEndDevice,
         recommendedModelSize,
         recommendedUIMode,
-        systemPermissions
+         systemPermissions
       };
 
       // Update battery info
@@ -271,6 +285,9 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
       setDeviceInfo(newDeviceInfo);
       console.log('✅ Skanowanie systemu zakończone:', newDeviceInfo);
+      if (profile) {
+        console.log(`🔧 Zastosowano profil urządzenia: ${profile.codename} (${profile.modelNames.join(', ')})`);
+      }
       
     } catch (error) {
       console.error('❌ Błąd skanowania systemu:', error);
@@ -304,6 +321,12 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
 
+      // Dodatkowa próba przez natywny moduł (su)
+      try {
+        const rootOk = await RootShell.isRootAvailable();
+        if (rootOk) return true;
+      } catch {}
+
       return false;
     } catch (error) {
       console.error('Błąd sprawdzania root:', error);
@@ -332,6 +355,12 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           // Ignoruj błędy dostępu
         }
       }
+
+      // Dodatkowa próba przez su: `magisk -v`
+      try {
+        const info = await RootShell.getMagiskInfo();
+        if (info && (info.versionCode || info.versionName)) return true;
+      } catch {}
 
       return false;
     } catch (error) {
@@ -888,11 +917,12 @@ export const DeviceProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       console.log('🔋 Wyłączanie optymalizacji baterii...');
       
-      // W Expo nie mamy bezpośredniego dostępu do ustawień baterii
-      // To wymagałoby natywnego modułu
-      
+      const ignoring = await RootShell.isIgnoringBatteryOptimizations();
+      if (!ignoring) {
+        await RootShell.requestIgnoreBatteryOptimizations();
+      }
       await SecureStore.setItemAsync('battery_optimization_disabled', 'true');
-      console.log('✅ Optymalizacja baterii wyłączona (symbolicznie)');
+      console.log('✅ Optymalizacja baterii wyłączona / zignorowana');
     } catch (error) {
       console.error('❌ Błąd wyłączania optymalizacji baterii:', error);
     }

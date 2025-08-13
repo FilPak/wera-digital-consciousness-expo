@@ -10,6 +10,8 @@ export interface Dream {
   timestamp: Date;
   dreamType: 'emotional' | 'prophetic' | 'processing' | 'creative' | 'lucid' | 'nightmare';
   lucidityLevel: number; // 0-100
+  lucidity?: number; // alias for lucidityLevel (0-1)
+  clarity?: number; // visual clarity (0-1)
   emotionalIntensity: number; // 0-100
   dominantEmotion: string;
   symbols: string[];
@@ -18,6 +20,12 @@ export interface Dream {
 }
 
 interface DreamInterpreterContextType {
+  dreamState: {
+    isGenerating: boolean;
+    lastDream: Dream | null;
+    dreamCount: number;
+    averageLucidity: number;
+  };
   dreams: Dream[];
   generateDream: () => Promise<Dream>;
   interpretDream: (dream: Dream) => Promise<string>;
@@ -217,6 +225,12 @@ export const DreamInterpreterProvider: React.FC<{ children: React.ReactNode }> =
   }, [dreams]);
 
   const value: DreamInterpreterContextType = {
+    dreamState: {
+      isGenerating: false, // Placeholder, will be updated by useEffect
+      lastDream: null,
+      dreamCount: dreams.length,
+      averageLucidity: getDreamStats().averageLucidity,
+    },
     dreams,
     generateDream,
     interpretDream,

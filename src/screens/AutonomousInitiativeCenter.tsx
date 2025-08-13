@@ -43,7 +43,7 @@ const AutonomousInitiativeCenter: React.FC = () => {
   const { theme } = useTheme();
   const { autonomyState } = useAutonomy();
   const { state: weraState } = useWeraCore();
-  const { emotionalState } = useEmotionEngine();
+  const { emotionState } = useEmotionEngine();
   
   const [currentTab, setCurrentTab] = useState<'active' | 'planning' | 'completed' | 'generator'>('active');
   const [initiatives, setInitiatives] = useState<AutonomousInitiative[]>([]);
@@ -185,7 +185,7 @@ const AutonomousInitiativeCenter: React.FC = () => {
 
     setIdeaGeneration({
       topic: ideaTopic,
-      context: `Stan emocjonalny: ${emotionalState.intensity}%, Świadomość: ${weraState.consciousnessLevel}%`,
+      context: `Stan emocjonalny: ${emotionState.intensity}%, Świadomość: ${weraState.consciousnessLevel}%`,
       generatedIdeas,
       timestamp: new Date()
     });

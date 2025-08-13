@@ -6,6 +6,7 @@ import * as Battery from 'expo-battery';
 import * as Location from 'expo-location';
 import * as Network from 'expo-network';
 import { Platform, Alert } from 'react-native';
+import { useLegalProtection } from './LegalProtectionSystem';
 
 // Interfejsy
 interface FullAccessRequest {
@@ -104,6 +105,9 @@ export const useAutonomy = () => {
 
 // Provider
 export const AutonomyProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Dodaję hook do systemu ochrony prawnej
+  const legalProtection = useLegalProtection();
+  
   const [autonomyState, setAutonomyState] = useState<AutonomyState>({
     fullAccessGranted: false,
     accessRequests: [],
@@ -129,7 +133,7 @@ export const AutonomyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     enabledFeatures: {}, // Inicjalizacja pustej mapy
   });
 
-  const initiativeIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const initiativeIntervalRef = useRef<any>(null);
 
   // Inicjalizacja
   useEffect(() => {
@@ -477,6 +481,13 @@ export const AutonomyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }));
 
     try {
+      // Logowanie autonomicznego działania do systemu prawnego
+      await legalProtection.logAutonomousAction(
+        `${initiative.type}: ${initiative.title}`,
+        undefined, // Brak polecenia użytkownika - działanie autonomiczne
+        initiative.priority === 'critical' ? 'high' : 'low'
+      );
+
       // Symulacja wykonania inicjatywy
       const startTime = Date.now();
       await new Promise(resolve => setTimeout(resolve, 2000)); // 2 sekundy
@@ -496,7 +507,21 @@ export const AutonomyProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       await saveAutonomyState();
 
+      // Logowanie zakończenia działania
+      await legalProtection.logAutonomousAction(
+        `Zakończono: ${initiative.type} - ${result}`,
+        undefined,
+        'low'
+      );
+
     } catch (error) {
+      // Logowanie błędu
+      await legalProtection.logAutonomousAction(
+        `Błąd wykonania: ${initiative.type} - ${error}`,
+        undefined,
+        'medium'
+      );
+
       setAutonomyState(prev => ({
         ...prev,
         autonomousInitiatives: prev.autonomousInitiatives.map(i =>
