@@ -71,16 +71,16 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                       <PromptProvider>
                         <EvolutionProvider>
                           <KnowledgeProvider>
-                            <OfflineKnowledgeProvider>
-                              <KnowledgeImportSystemProvider>
-                                <PersonalityModeProvider>
-                                  <AutonomyProvider>
-                                    <LogExportSystemProvider>
-                                      <WeraDaemonProvider>
-                                        <AutoRestartSystemProvider>
-                                          <PersonalityEvolutionProvider>
-                                            <ResponseGeneratorProvider>
-                                              <SandboxFileSystemProvider>
+                            <SandboxFileSystemProvider>
+                              <OfflineKnowledgeProvider>
+                                <KnowledgeImportSystemProvider>
+                                  <PersonalityModeProvider>
+                                    <AutonomyProvider>
+                                      <LogExportSystemProvider>
+                                        <WeraDaemonProvider>
+                                          <AutoRestartSystemProvider>
+                                            <PersonalityEvolutionProvider>
+                                              <ResponseGeneratorProvider>
                                                 <ThoughtProcessorProvider>
                                                   <IndependentLifeProvider>
                                                     <DreamInterpreterProvider>
@@ -138,16 +138,16 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                                                     </DreamInterpreterProvider>
                                                   </IndependentLifeProvider>
                                                 </ThoughtProcessorProvider>
-                                              </SandboxFileSystemProvider>
-                                            </ResponseGeneratorProvider>
-                                          </PersonalityEvolutionProvider>
-                                        </AutoRestartSystemProvider>
-                                      </WeraDaemonProvider>
-                                    </LogExportSystemProvider>
-                                  </AutonomyProvider>
-                                </PersonalityModeProvider>
-                              </KnowledgeImportSystemProvider>
-                            </OfflineKnowledgeProvider>
+                                              </ResponseGeneratorProvider>
+                                            </PersonalityEvolutionProvider>
+                                          </AutoRestartSystemProvider>
+                                        </WeraDaemonProvider>
+                                      </LogExportSystemProvider>
+                                    </AutonomyProvider>
+                                  </PersonalityModeProvider>
+                                </KnowledgeImportSystemProvider>
+                              </OfflineKnowledgeProvider>
+                            </SandboxFileSystemProvider>
                           </KnowledgeProvider>
                         </EvolutionProvider>
                       </PromptProvider>
