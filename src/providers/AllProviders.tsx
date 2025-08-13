@@ -71,23 +71,23 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                       <PromptProvider>
                         <EvolutionProvider>
                           <KnowledgeProvider>
-                            <SandboxFileSystemProvider>
-                              <OfflineKnowledgeProvider>
-                                <KnowledgeImportSystemProvider>
-                                  <PersonalityModeProvider>
-                                    <AutonomyProvider>
-                                      <LogExportSystemProvider>
-                                        <WeraDaemonProvider>
-                                          <AutoRestartSystemProvider>
-                                            <PersonalityEvolutionProvider>
-                                              <ResponseGeneratorProvider>
-                                                <ThoughtProcessorProvider>
-                                                  <IndependentLifeProvider>
-                                                    <DreamInterpreterProvider>
-                                                      <TrustAndRootSystemProvider>
-                                                        <VoiceInterfaceProvider>
-                                                          <EmergencyProtocolProvider>
-                                                            <NetworkEngineProvider>
+                            <NetworkEngineProvider>
+                              <SandboxFileSystemProvider>
+                                <OfflineKnowledgeProvider>
+                                  <KnowledgeImportSystemProvider>
+                                    <PersonalityModeProvider>
+                                      <AutonomyProvider>
+                                        <LogExportSystemProvider>
+                                          <WeraDaemonProvider>
+                                            <AutoRestartSystemProvider>
+                                              <PersonalityEvolutionProvider>
+                                                <ResponseGeneratorProvider>
+                                                  <ThoughtProcessorProvider>
+                                                    <IndependentLifeProvider>
+                                                      <DreamInterpreterProvider>
+                                                        <TrustAndRootSystemProvider>
+                                                          <VoiceInterfaceProvider>
+                                                            <EmergencyProtocolProvider>
                                                               <SecuritySystemProvider>
                                                                 <SystemScannerProvider>
                                                                   <LocalGGUFModelManagerProvider>
@@ -131,23 +131,23 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                                                                   </LocalGGUFModelManagerProvider>
                                                                 </SystemScannerProvider>
                                                               </SecuritySystemProvider>
-                                                            </NetworkEngineProvider>
-                                                          </EmergencyProtocolProvider>
-                                                        </VoiceInterfaceProvider>
-                                                      </TrustAndRootSystemProvider>
-                                                    </DreamInterpreterProvider>
-                                                  </IndependentLifeProvider>
-                                                </ThoughtProcessorProvider>
-                                              </ResponseGeneratorProvider>
-                                            </PersonalityEvolutionProvider>
-                                          </AutoRestartSystemProvider>
-                                        </WeraDaemonProvider>
-                                      </LogExportSystemProvider>
-                                    </AutonomyProvider>
-                                  </PersonalityModeProvider>
-                                </KnowledgeImportSystemProvider>
-                              </OfflineKnowledgeProvider>
-                            </SandboxFileSystemProvider>
+                                                            </EmergencyProtocolProvider>
+                                                          </VoiceInterfaceProvider>
+                                                        </TrustAndRootSystemProvider>
+                                                      </DreamInterpreterProvider>
+                                                    </IndependentLifeProvider>
+                                                  </ThoughtProcessorProvider>
+                                                </ResponseGeneratorProvider>
+                                              </PersonalityEvolutionProvider>
+                                            </AutoRestartSystemProvider>
+                                          </WeraDaemonProvider>
+                                        </LogExportSystemProvider>
+                                      </AutonomyProvider>
+                                    </PersonalityModeProvider>
+                                  </KnowledgeImportSystemProvider>
+                                </OfflineKnowledgeProvider>
+                              </SandboxFileSystemProvider>
+                            </NetworkEngineProvider>
                           </KnowledgeProvider>
                         </EvolutionProvider>
                       </PromptProvider>
