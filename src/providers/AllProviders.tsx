@@ -61,22 +61,22 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
   return (
     <ThemeProvider isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}>
       <WeraConfigFilesProvider>
-        <LogExportSystemProvider>
-          <AutoRestartSystemProvider>
-            <WeraCoreProvider>
-              <EmotionEngineProvider>
-                <MemoryProvider>
-                  <DeviceProvider>
-                    <DiagnosticsProvider>
-                      <NotificationProvider>
-                        <ConversationProvider>
-                          <PromptProvider>
-                            <EvolutionProvider>
-                              <KnowledgeProvider>
-                                <OfflineKnowledgeProvider>
-                                  <KnowledgeImportSystemProvider>
-                                    <PersonalityModeProvider>
-                                      <AutonomyProvider>
+        <AutoRestartSystemProvider>
+          <WeraCoreProvider>
+            <EmotionEngineProvider>
+              <MemoryProvider>
+                <DeviceProvider>
+                  <DiagnosticsProvider>
+                    <NotificationProvider>
+                      <ConversationProvider>
+                        <PromptProvider>
+                          <EvolutionProvider>
+                            <KnowledgeProvider>
+                              <OfflineKnowledgeProvider>
+                                <KnowledgeImportSystemProvider>
+                                  <PersonalityModeProvider>
+                                    <AutonomyProvider>
+                                      <LogExportSystemProvider>
                                         <PersonalityEvolutionProvider>
                                           <ResponseGeneratorProvider>
                                             <SandboxFileSystemProvider>
@@ -142,6 +142,7 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                                             </SandboxFileSystemProvider>
                                           </ResponseGeneratorProvider>
                                         </PersonalityEvolutionProvider>
+                                      </LogExportSystemProvider>
                                       </AutonomyProvider>
                                     </PersonalityModeProvider>
                                   </KnowledgeImportSystemProvider>
@@ -156,8 +157,7 @@ const AllProviders: React.FC<AllProvidersProps> = ({ children }) => {
                 </MemoryProvider>
               </EmotionEngineProvider>
             </WeraCoreProvider>
-          </AutoRestartSystemProvider>
-        </LogExportSystemProvider>
+        </AutoRestartSystemProvider>
       </WeraConfigFilesProvider>
     </ThemeProvider>
   );
